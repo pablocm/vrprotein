@@ -1,5 +1,5 @@
 /***********************************************************************
-VruiDemoSmall - Extremely simple Vrui application to demonstrate the
+VrProteinRenderer - Extremely simple Vrui application to demonstrate the
 small amount of code overhead introduced by the Vrui toolkit.
 Copyright (c) 2006-2013 Oliver Kreylos
 
@@ -24,28 +24,28 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <Vrui/Vrui.h>
 #include <Vrui/Application.h>
 
-class VruiDemoSmall:public Vrui::Application
+class VrProteinRenderer:public Vrui::Application
 	{
 	/* Constructors and destructors: */
 	public:
-	VruiDemoSmall(int& argc,char**& argv);
+	VrProteinRenderer(int& argc,char**& argv);
 	
 	/* Methods from Vrui::Application: */
 	virtual void display(GLContextData& contextData) const;
 	};
 
 /******************************
-Methods of class VruiDemoSmall:
+Methods of class VrProteinRenderer:
 ******************************/
 
-VruiDemoSmall::VruiDemoSmall(int& argc,char**& argv)
+VrProteinRenderer::VrProteinRenderer(int& argc,char**& argv)
 	:Vrui::Application(argc,argv)
 	{
 	/* Set the navigation transformation to show the entire scene: */
 	Vrui::setNavigationTransformation(Vrui::Point::origin,Vrui::Scalar(12));
 	}
 
-void VruiDemoSmall::display(GLContextData& contextData) const
+void VrProteinRenderer::display(GLContextData& contextData) const
 	{
 	/* Draw a red cube and a blue sphere: */
 	glPushMatrix();
@@ -63,4 +63,4 @@ void VruiDemoSmall::display(GLContextData& contextData) const
 	}
 
 /* Create and execute an application object: */
-VRUI_APPLICATION_RUN(VruiDemoSmall)
+VRUI_APPLICATION_RUN(VrProteinRenderer)
