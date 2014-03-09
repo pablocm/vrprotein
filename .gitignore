@@ -24,3 +24,7 @@
 bin/
 d/
 o/
+
+# Eclipse config
+.cproject
+.project
