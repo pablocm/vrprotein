@@ -39,7 +39,8 @@ ETCINSTALLDIR = $(INSTALLDIR)/$(CONFIGDIR)
 # Specify additional compiler and linker flags
 ########################################################################
 
-CFLAGS += -Wall -pedantic
+CFLAGS += -Wall -pedantic -std=c++0x
+#  -Wextra
 
 ########################################################################
 # List common packages used by all components of this project
@@ -74,7 +75,7 @@ include $(VRUI_MAKEDIR)/BasicMakefile
 # Specify build rules for executables
 ########################################################################
 
-APP_SOURCES = $(wildcard *.cpp)
+APP_SOURCES = $(wildcard src/*.cpp)
 
 # $(OBJDIR)/NanotechConstructionKit.o: CFLAGS += -DNANOTECHCONSTRUCTIONKIT_CFGFILENAME='"$(ETCINSTALLDIR)/NCK.cfg"'
 

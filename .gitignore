@@ -28,3 +28,4 @@ o/
 # Eclipse config
 .cproject
 .project
+.settings/

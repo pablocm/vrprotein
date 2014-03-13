@@ -22,6 +22,9 @@
 #include <GL/GLModels.h>
 #include <Vrui/Vrui.h>
 #include <Vrui/Application.h>
+#include "PDBImporter.h"
+
+using namespace std;
 
 class VrProteinRenderer: public Vrui::Application {
 public:
@@ -63,6 +66,7 @@ void VrProteinRenderer::frame() {
 
 /* Create and execute an application object: */
 int main(int argc, char* argv[]) {
+	/*
 	try {
 		VrProteinRenderer app(argc, argv);
 		app.run();
@@ -70,5 +74,9 @@ int main(int argc, char* argv[]) {
 		std::cerr << "Terminated program due to exception: " << err.what() << std::endl;
 		return 1;
 	}
+	*/
+	cout << "Start!" << endl;
+	auto molecule = PDBImporter::ParsePDB("alanin.pdb");
+
 	return 0;
 }
