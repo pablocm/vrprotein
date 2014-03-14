@@ -15,8 +15,7 @@ class Molecule {
 public:
 	Molecule();
 	void AddAtom(std::unique_ptr<MolAtom> &atom);
-	MolAtom& GetAtom();
-	int AtomCount();
+	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
 
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;

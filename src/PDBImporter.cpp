@@ -38,7 +38,7 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
 	}
 	infile.close();
 
-	cout << "Loaded " << molecule->AtomCount() << " atoms." << endl;
+	cout << "Loaded " << molecule->GetAtoms().size() << " atoms." << endl;
 	return molecule;
 }
 
@@ -75,7 +75,7 @@ unique_ptr<MolAtom> ParsePDBAtom(const string &line) {
 	atom->occupancy = stof(line.substr(54, 6));
 	atom->tempFactor= stof(line.substr(60, 6));
 
-	cout << atom->x << ", " << atom->y << ", " << atom->z << endl;
+	//cout << atom->name << ": " << atom->x << ", " << atom->y << ", " << atom->z << endl;
 	return atom;
 }
 }
