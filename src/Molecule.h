@@ -16,7 +16,7 @@ public:
 	Molecule();
 	void AddAtom(std::unique_ptr<MolAtom> &atom);
 	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
-
+	float default_radius(char *nm);
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;
 };
