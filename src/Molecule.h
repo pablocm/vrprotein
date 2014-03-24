@@ -13,6 +13,8 @@
 
 class Molecule {
 public:
+	std::string source_filename;	// archivo PDB
+
 	Molecule();
 	void AddAtom(std::unique_ptr<MolAtom> &atom);
 	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;

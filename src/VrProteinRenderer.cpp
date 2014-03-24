@@ -25,6 +25,7 @@
 #include <Vrui/Application.h>
 #include "PDBImporter.h"
 #include "Molecule.h"
+#include "DrawMolecule.h"
 
 using std::unique_ptr;
 
@@ -36,37 +37,9 @@ public:
 	virtual void display(GLContextData& contextData) const;
 	virtual void frame();
 
-	unique_ptr<Molecule> molecule;
+	unique_ptr<DrawMolecule> drawMolecule;
 };
 
-// TEMP TEMP TEMP
-void DrawMolecule(Molecule& molecule) {
-
-	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(0.5f, 0.5f, 1.0f));
-	glDrawSphereIcosahedron(0.1f, 3);
-
-	glPointSize(2.0f);
-
-	//glBegin(GL_POINTS);
-	for (auto& a : molecule.GetAtoms()) {
-		if (a->name.substr(0, 1) == "C")
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(0.0f, 1.0f, 0.0f));
-		else if (a->name.substr(0, 1) == "H")
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(1.0f, 0.0f, 0.0f));
-		else if (a->name.substr(0, 1) == "O")
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(0.2f, 0.2f, 1.0f));
-		else
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(1.0f, 1.0f, 0.0f));
-
-		//glVertex3f(a->x, a->y, a->z);
-
-		glPushMatrix();
-		glTranslated(a->x, a->y, a->z);
-		glDrawSphereIcosahedron(0.1f, 1);
-		glPopMatrix();
-	}
-	//glEnd();
-}
 
 /******************************
  Methods of class VrProteinRenderer:
@@ -79,28 +52,8 @@ VrProteinRenderer::VrProteinRenderer(int& argc, char**& argv) :
 }
 
 void VrProteinRenderer::display(GLContextData& contextData) const {
-	//glPushAttrib(GL_ENABLE_BIT|GL_LIGHTING_BIT|GL_LINE_BIT|GL_POINT_BIT);
-	//glEnable(GL_COLOR_MATERIAL);
-	//glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
 
-	// TEMP
-	DrawMolecule(*molecule);
-
-	//glPopAttrib();
-
-//	/* Draw a red cube and a blue sphere: */
-//	glPushMatrix();
-//
-//	glTranslated(-5.0, 0.0, 0.0);
-//	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(1.0f, 0.5f, 0.0f));
-//	//glDrawCube(7.5f);
-//	glDrawWireframeCube(7.5f, 1.0f, 1.5f);
-//
-//	glTranslated(10.0, 0.0, 0.0);
-//	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(0.5f, 0.5f, 1.0f));
-//	glDrawSphereIcosahedron(4.5f, 6);
-//
-//	glPopMatrix();
+	drawMolecule->Draw(contextData);
 }
 
 void VrProteinRenderer::frame() {
@@ -111,7 +64,12 @@ int main(int argc, char* argv[]) {
 	try {
 		VrProteinRenderer app(argc, argv);
 		// Load
-		app.molecule = PDBImporter::ParsePDB("dna.pdb");
+		auto m = PDBImporter::ParsePDB("dna.pdb");
+		app.drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
+
+		//init surf
+		app.drawMolecule->ComputeSurf();
+		app.drawMolecule->style = DrawStyle::Surf;
 
 		app.run();
 	} catch (std::runtime_error &err) {

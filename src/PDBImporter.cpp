@@ -29,6 +29,8 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
 		throw std::runtime_error("file not found");
 
 	auto molecule = unique_ptr<Molecule>(new Molecule);
+	molecule->source_filename = filename;
+
 	string line;
 	while (getline(infile, line)) {
 		if (line.substr(0, 5) == "ATOM ") {
@@ -41,6 +43,7 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
 	cout << "Loaded " << molecule->GetAtoms().size() << " atoms." << endl;
 	return molecule;
 }
+
 
 // http://www.wwpdb.org/documentation/format33/sect9.html#ATOM
 /*
@@ -74,8 +77,38 @@ unique_ptr<MolAtom> ParsePDBAtom(const string &line) {
 	atom->z 		= stof(line.substr(46, 8));
 	atom->occupancy = stof(line.substr(54, 6));
 	atom->tempFactor= stof(line.substr(60, 6));
+	atom->short_name= short_name(atom->name);
+	atom->radius	= default_radius(atom->short_name);
 
 	//cout << atom->name << ": " << atom->x << ", " << atom->y << ", " << atom->z << endl;
 	return atom;
 }
+
+// Nombre corto del atomo (H, C, N, O, F, S, etc.)
+char short_name(const string& name) {
+	const char *nm = name.c_str();
+	// some names start with a number
+	while (*nm && isdigit(*nm))
+		nm++;
+	return toupper(nm[0]);
+}
+
+
+// return a 'default' radius for a given atom name
+// Taken from VMD: BaseMolecule.C:552
+float default_radius(const char name) {
+	float val = 1.5f;
+	switch(name) {
+		// These are similar to the values used by X-PLOR with sigma=0.8
+		// see page 50 of the X-PLOR 3.1 manual
+		case 'H' : val = 1.00f; break;
+		case 'C' : val = 1.50f; break;
+		case 'N' : val = 1.40f; break;
+		case 'O' : val = 1.30f; break;
+		case 'F' : val = 1.20f; break;
+		case 'S' : val = 1.90f; break;
+	}
+	return val;
+}
+
 }
