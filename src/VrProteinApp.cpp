@@ -1,5 +1,5 @@
 /***********************************************************************
- VrProteinRenderer
+ VrProteinApp
  Copyright (c) 2014 Pablo Cruz
 
  This program is free software; you can redistribute it and/or modify it
@@ -29,9 +29,9 @@
 
 using std::unique_ptr;
 
-class VrProteinRenderer: public Vrui::Application {
+class VrProteinApp: public Vrui::Application {
 public:
-	VrProteinRenderer(int& argc, char**& argv);
+	VrProteinApp(int& argc, char**& argv);
 
 	/* Methods from Vrui::Application: */
 	virtual void display(GLContextData& contextData) const;
@@ -42,27 +42,28 @@ public:
 
 
 /******************************
- Methods of class VrProteinRenderer:
+ Methods of class VrProteinApp:
  ******************************/
 
-VrProteinRenderer::VrProteinRenderer(int& argc, char**& argv) :
+VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 		Vrui::Application(argc, argv) {
 	/* Set the navigation transformation to show the entire scene: */
 	Vrui::setNavigationTransformation(Vrui::Point::origin, Vrui::Scalar(40));
 }
 
-void VrProteinRenderer::display(GLContextData& contextData) const {
+void VrProteinApp::display(GLContextData& contextData) const {
 
 	drawMolecule->Draw(contextData);
 }
 
-void VrProteinRenderer::frame() {
+void VrProteinApp::frame() {
 }
+
 
 /* Create and execute an application object: */
 int main(int argc, char* argv[]) {
 	try {
-		VrProteinRenderer app(argc, argv);
+		VrProteinApp app(argc, argv);
 		// Load
 		auto m = PDBImporter::ParsePDB("dna.pdb");
 		app.drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
