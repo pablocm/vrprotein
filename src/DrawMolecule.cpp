@@ -22,6 +22,7 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	molecule = move(m);
 	style = DrawStyle::Points;
 	surfComputed = false;
+	useColor = true;
 }
 
 
@@ -39,15 +40,17 @@ void DrawMolecule::Draw(GLContextData& contextData) const {
  * Dibujar molecula usando esferas.
  */
 void DrawMolecule::DrawPoints(GLContextData& contextData) const {
-	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(0.5f, 0.5f, 1.0f));
-	glDrawSphereIcosahedron(0.1f, 3);
-
-	glPointSize(2.0f);
+	//glPointSize(2.0f);
 
 	//glBegin(GL_POINTS);
 	for (auto& a : molecule->GetAtoms()) {
-		auto color = AtomColor(a->short_name);
-		glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, *color);
+		if (useColor) {
+			auto color = AtomColor(a->short_name);
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, *color);
+		} else {
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT,
+					GLColor<GLfloat, 4>(0.9f, 0.9f, 0.9f));
+		}
 
 		//glVertex3f(a->x, a->y, a->z);
 
@@ -69,9 +72,17 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 
 	glBegin(GL_TRIANGLES);
 
-	for(auto& v : vertices) {
-		glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, v->color);
-		glVertex(*v);
+	if (useColor) {
+		for (auto& v : vertices) {
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, v->color);
+			glVertex(*v);
+		}
+	}
+	else {
+		glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(0.9f, 0.9f, 0.9f));
+		for (auto& v : vertices) {
+			glVertex(*v);
+		}
 	}
 
 	glEnd();
@@ -130,11 +141,18 @@ unique_ptr<GLColor<GLfloat, 4>> DrawMolecule::AtomColor(char short_name) const {
 	return unique_ptr<GLColor<GLfloat, 4>>(new GLColor<GLfloat, 4>(0.9f, 0.9f, 0.9f)); // blanco
 }
 
-/**
- * Ver:
- * DrawMolItemSurface.C:42 (draw_surface)
- * Surf.C:35 (compute)
- *
- * Para parsear output:
- * http://www.cplusplus.com/reference/cstdio/fscanf/
- */
+
+void DrawMolecule::GetCenter(float &x, float &y, float &z) {
+	molecule->GetCenter(x, y, z);
+}
+
+void DrawMolecule::SetColorStyle(bool useColor) {
+	this->useColor = useColor;
+}
+
+void DrawMolecule::SetDrawStyle(DrawStyle style) {
+	this->style = style;
+	if (style == DrawStyle::Surf) {
+		ComputeSurf();
+	}
+}

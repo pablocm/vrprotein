@@ -22,19 +22,19 @@ class DrawMolecule {
 public:
 	typedef GLVertex<void,0,GLfloat,4,GLfloat,GLfloat,3> Vertex; // Type for render vertices
 
-	DrawStyle style;
-
 	DrawMolecule(std::unique_ptr<Molecule> m);
 
 	void Draw(GLContextData& contextData) const;
 	void ComputeSurf();
+	void GetCenter(float &x, float &y, float &z);
+	void SetDrawStyle(DrawStyle style);
+	void SetColorStyle(bool useColor);
 private:
 	std::unique_ptr<Molecule> molecule;
-	//std::vector<Vrui::Vector> vertices;
-	//std::vector<Vrui::Vector> normals;
-	//std::vector<GLColor<GLfloat, 4>> colors;
 	std::vector<std::unique_ptr<Vertex>> vertices;
 	bool surfComputed;
+	DrawStyle style;
+	bool useColor;
 
 	void DrawPoints(GLContextData& contextData) const;
 	void DrawSurf(GLContextData& contextData) const;

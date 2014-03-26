@@ -18,9 +18,13 @@ public:
 	Molecule();
 	void AddAtom(std::unique_ptr<MolAtom> &atom);
 	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
-	float default_radius(char *nm);
+	void GetCenter(float &x, float &y, float &z);
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;
+	float center_x;
+	float center_y;
+	float center_z;
+	bool center_calculated;
 };
 
 #endif /* MOLECULE_H_ */

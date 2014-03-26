@@ -40,6 +40,7 @@ ETCINSTALLDIR = $(INSTALLDIR)/$(CONFIGDIR)
 ########################################################################
 
 CFLAGS += -Wall -pedantic -std=c++0x
+CFLAGS += -g -rdynamic	#DEBUG: Compile with trace symbols
 #  -Wextra
 
 ########################################################################

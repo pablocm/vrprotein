@@ -26,7 +26,7 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
 	ifstream infile;
 	infile.open(filename);
 	if (infile.fail())
-		throw std::runtime_error("file not found");
+		throw std::runtime_error("file not found: " + filename);
 
 	auto molecule = unique_ptr<Molecule>(new Molecule);
 	molecule->source_filename = filename;
