@@ -11,6 +11,8 @@
 #include <GL/gl.h>
 #include <GL/GLMaterialTemplates.h>
 #include <GL/GLModels.h>
+#include <GL/GLTransformationWrappers.h>
+#include <Geometry/Sphere.h>
 #include <Geometry/Vector.h>
 #include <Vrui/Geometry.h>
 #include "DrawMolecule.h"
@@ -23,16 +25,73 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	style = DrawStyle::Points;
 	surfComputed = false;
 	useColor = true;
+	locked = false;
+	position = Vrui::Point::origin;
+	orientation = Vrui::Rotation::identity;
+}
+
+
+bool DrawMolecule::Intersects(const Vrui::Ray& r) const {
+	Geometry::Sphere<Vrui::Scalar, 3> sphere(Vrui::Point::origin, 0);  // Test sphere
+	for (auto& atom : molecule->GetAtoms()) {
+		sphere.setCenter(
+				Vrui::Point(atom->x + position[0], atom->y + position[1], atom->z + position[2]));
+		sphere.setRadius(atom->radius * 1.5);
+
+		auto hitResult = sphere.intersectRay(r);
+
+		if (hitResult.isValid())
+			return true;
+	}
+	return false;
+}
+
+bool DrawMolecule::Intersects(const Vrui::Point& p) const {
+	std::cout << "Checking intersect at " << p[0] << ", " << p[1] << ", " << p[2] << std::endl;
+	auto transform = GetState();
+	for (auto& atom : molecule->GetAtoms()) {
+		auto position = Vrui::Point(atom->x, atom->y, atom->z);
+		position = transform.transform(position);
+
+		auto dist2 = Geometry::sqrDist(p, position);
+		if (dist2 <= Math::sqr(atom->radius * 1.5))
+			return true;
+	}
+	return false;
+}
+
+bool DrawMolecule::Lock() {
+	if (!locked)
+		return locked = true;
+	return false;
+}
+
+void DrawMolecule::Unlock() {
+	locked = false;
+}
+
+Vrui::ONTransform DrawMolecule::GetState() const {
+	return Vrui::ONTransform(position - Vrui::Point::origin, orientation);
+}
+
+void DrawMolecule::SetState(const Vrui::ONTransform& newState) {
+	position = newState.getOrigin();
+	orientation = newState.getRotation();
 }
 
 
 void DrawMolecule::Draw(GLContextData& contextData) const {
+	glPushMatrix();
+	glMultMatrix(GetState());
+
 	switch (style) {
 	case DrawStyle::Points:
 		DrawPoints(contextData); break;
 	case DrawStyle::Surf:
 		DrawSurf(contextData); break;
 	}
+
+	glPopMatrix();
 }
 
 

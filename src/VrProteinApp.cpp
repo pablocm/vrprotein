@@ -20,8 +20,11 @@
 #include <memory>
 #include <iostream>
 #include <GL/gl.h>
+#include <GL/GLColorTemplates.h>
 #include <GL/GLMaterialTemplates.h>
+#include <GL/GLVertexTemplates.h>
 #include <GL/GLModels.h>
+#include <GL/GLTransformationWrappers.h>
 #include <GLMotif/StyleSheet.h>
 #include <GLMotif/WidgetManager.h>
 #include <GLMotif/PopupMenu.h>
@@ -34,6 +37,8 @@
 #include <GLMotif/RadioBox.h>
 #include <Vrui/Vrui.h>
 #include <Vrui/Application.h>
+#include <Vrui/ToolManager.h>
+#include <Vrui/DraggingToolAdapter.h>
 #include "utils/backtrace.h"
 #include "PDBImporter.h"
 #include "Molecule.h"
@@ -50,6 +55,25 @@ public:
 	virtual void frame();
 
 private:
+	// embedded classes
+	typedef Vrui::Point Point;
+	typedef Vrui::ONTransform ONTransform;
+
+	class MoleculeDragger:public Vrui::DraggingToolAdapter { // Class to drag molecules
+	private:
+		VrProteinApp* application;
+		bool dragging;
+		ONTransform dragTransform;
+
+	public:
+		MoleculeDragger(Vrui::DraggingTool* sTool, VrProteinApp* sApplication);
+		virtual void dragStartCallback(Vrui::DraggingTool::DragStartCallbackData* cbData);
+		virtual void dragCallback(Vrui::DraggingTool::DragCallbackData* cbData);
+		virtual void dragEndCallback(Vrui::DraggingTool::DragEndCallbackData* cbData);
+	};
+
+	friend class MoleculeDragger;
+
 	// Private fields
 	unique_ptr<DrawMolecule> drawMolecule;
 	DrawStyle selectedStyle;
@@ -72,7 +96,74 @@ private:
 	void moleculePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
+	// Tool items
+	std::vector<unique_ptr<MoleculeDragger>> moleculeDraggers;
+	// Tool Callbacks
+	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
+	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
 };
+
+
+/******************************
+ Methods of class MoleculeDragger:
+ ******************************/
+
+VrProteinApp::MoleculeDragger::MoleculeDragger(Vrui::DraggingTool* sTool,
+		VrProteinApp* sApplication) :
+			Vrui::DraggingToolAdapter(sTool),
+			application(sApplication),
+			dragging(false) {
+}
+
+void VrProteinApp::MoleculeDragger::dragStartCallback(
+		Vrui::DraggingTool::DragStartCallbackData* cbData) {
+	/* Find the picked atom: */
+	bool draggedMolecule = false;
+	if (cbData->rayBased && application->drawMolecule->Intersects(cbData->ray))
+		draggedMolecule = true;
+	else if (!cbData->rayBased && application->drawMolecule->Intersects(cbData->startTransformation.getOrigin()))
+		draggedMolecule = true;
+
+	/* Try locking the atom: */
+	if (draggedMolecule) {
+		if (application->drawMolecule->Lock()) {
+			std::cout << "Grabbed molecule." << std::endl;
+			dragging = true;
+
+			/* Calculate the initial transformation from the dragger to the dragged atom: */
+			dragTransform = ONTransform(cbData->startTransformation.getTranslation(),
+					cbData->startTransformation.getRotation());
+			dragTransform.doInvert();
+			dragTransform *= application->drawMolecule->GetState();
+		}
+		else
+			std::cout << "Molecule is locked by other dragger." << std::endl;
+	}
+	else
+		std::cout << "Nothing to grab at this location" << std::endl;
+}
+
+void VrProteinApp::MoleculeDragger::dragCallback(Vrui::DraggingTool::DragCallbackData* cbData) {
+	if (dragging) {
+		/* Apply the dragging transformation to the dragged atom: */
+		ONTransform transform = ONTransform(cbData->currentTransformation.getTranslation(),
+				cbData->currentTransformation.getRotation());
+		transform *= dragTransform;
+		application->drawMolecule->SetState(transform);
+	}
+}
+
+void VrProteinApp::MoleculeDragger::dragEndCallback(
+		Vrui::DraggingTool::DragEndCallbackData* cbData) {
+	if (dragging) {
+		std::cout << "Released molecule." << std::endl;
+		auto finalpos = application->drawMolecule->GetState().getOrigin();
+		std::cout << "New pos: " << finalpos[0] << ", " << finalpos[1] << ", " << finalpos[2] << std::endl;
+		/* Release the previously dragged atom: */
+		application->drawMolecule->Unlock();
+		dragging = false;
+	}
+}
 
 
 /******************************
@@ -80,11 +171,9 @@ private:
  ******************************/
 
 VrProteinApp::VrProteinApp(int& argc, char**& argv) :
-		Vrui::Application(argc, argv) {
-	/* Set defaults */
-	selectedStyle = DrawStyle::Surf;
-	selectedUseColor = true;
-
+			Vrui::Application(argc, argv),
+			selectedStyle(DrawStyle::Surf),
+			selectedUseColor(true) {
 	/* load molecule data */
 	LoadMolecule("alanin.pdb");
 
@@ -100,6 +189,58 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 void VrProteinApp::display(GLContextData& contextData) const {
 	// Draw the molecule
 	drawMolecule->Draw(contextData);
+
+	/* Render the grid's domain box: */
+	GLboolean lightingEnabled=glIsEnabled(GL_LIGHTING);
+	if(lightingEnabled)
+		glDisable(GL_LIGHTING);
+	GLfloat lineWidth;
+	glGetFloatv(GL_LINE_WIDTH,&lineWidth);
+	glLineWidth(2.0f);
+
+	/* Create the domain box display list: */
+	Point min = Point(-40,-40,-40); //Point::origin;
+	Point max;
+	for(int i=0;i<3;++i)
+		max[i] = 40;
+	Vrui::Color fgColor=Vrui::getBackgroundColor();
+	for(int i=0;i<3;++i)
+		fgColor[i]=1.0f-fgColor[i];
+	glColor(fgColor);
+	glBegin(GL_LINE_STRIP);
+	glVertex(min[0],min[1],min[2]);
+	glVertex(max[0],min[1],min[2]);
+	glVertex(max[0],max[1],min[2]);
+	glVertex(min[0],max[1],min[2]);
+	glVertex(min[0],min[1],min[2]);
+	glVertex(min[0],min[1],max[2]);
+	glVertex(max[0],min[1],max[2]);
+	glVertex(max[0],max[1],max[2]);
+	glVertex(min[0],max[1],max[2]);
+	glVertex(min[0],min[1],max[2]);
+	glEnd();
+	glBegin(GL_LINES);
+	glVertex(max[0],min[1],min[2]);
+	glVertex(max[0],min[1],max[2]);
+	glVertex(max[0],max[1],min[2]);
+	glVertex(max[0],max[1],max[2]);
+	glVertex(min[0],max[1],min[2]);
+	glVertex(min[0],max[1],max[2]);
+	glEnd();
+	// Linea origen
+	glColor(Vrui::Color(1,0,0));
+	glBegin(GL_LINES);
+	glVertex(-20,0,0);
+	glVertex( 20,0,0);
+	glVertex(0,-20,0);
+	glVertex(0, 20,0);
+	glVertex(0,0,-20);
+	glVertex(0,0, 20);
+	glEnd();
+
+	if(lightingEnabled)
+		glEnable(GL_LIGHTING);
+	glLineWidth(lineWidth);
 }
 
 void VrProteinApp::frame() {
@@ -228,6 +369,31 @@ void VrProteinApp::stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCal
 void VrProteinApp::colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
 	selectedUseColor = cbData->set;
 	drawMolecule->SetColorStyle(cbData->set);
+}
+
+void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {
+	/* Check if the new tool is a dragging tool: */
+	Vrui::DraggingTool* tool = dynamic_cast<Vrui::DraggingTool*>(cbData->tool);
+	if (tool != nullptr) {
+		/* Create an atom dragger object and associate it with the new tool: */
+		moleculeDraggers.push_back(unique_ptr<MoleculeDragger>(new MoleculeDragger(tool, this)));
+	}
+}
+
+void VrProteinApp::toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData) {
+	/* Check if the to-be-destroyed tool is a dragging tool: */
+	Vrui::DraggingTool* tool = dynamic_cast<Vrui::DraggingTool*>(cbData->tool);
+	if (tool != nullptr) {
+		/* Find the molecule dragger associated with the tool in the list: */
+		std::vector<unique_ptr<MoleculeDragger>>::iterator mdIt;
+		for (mdIt = moleculeDraggers.begin();
+				mdIt != moleculeDraggers.end() && (*mdIt)->getTool() != tool; ++mdIt)
+			;
+		if (mdIt != moleculeDraggers.end()) {
+			/* Remove the molecule dragger: */
+			moleculeDraggers.erase(mdIt);
+		}
+	}
 }
 
 
