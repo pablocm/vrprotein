@@ -319,11 +319,7 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void)
 /* Center display on currently loaded molecule */
 void VrProteinApp::centerDisplayCallback(Misc::CallbackData* cbData) {
 	std::cout << "Centering display." << std::endl;
-	float x=0, y=0, z=0;
-	if (drawMolecule) {
-		drawMolecule->GetCenter(x, y, z);
-	}
-	Vrui::setNavigationTransformation(Vrui::Point(x, y, z), Vrui::Scalar(40));
+	Vrui::setNavigationTransformation(Vrui::Point::origin, Vrui::Scalar(40));
 }
 
 void VrProteinApp::showSettingsDialogCallback(
@@ -404,6 +400,12 @@ void VrProteinApp::LoadMolecule(const std::string& fileName) {
 
 	drawMolecule->SetDrawStyle(selectedStyle);
 	drawMolecule->SetColorStyle(selectedUseColor);
+
+	float x=0, y=0, z=0;
+	if (drawMolecule) {
+		drawMolecule->GetCenter(x, y, z);
+	}
+	drawMolecule->SetState(ONTransform::translateToOriginFrom(Point(x, y, z)));
 }
 
 
