@@ -35,6 +35,7 @@
 #include <GLMotif/Button.h>
 #include <GLMotif/ToggleButton.h>
 #include <GLMotif/RadioBox.h>
+#include <GLMotif/DropdownBox.h>
 #include <Vrui/Vrui.h>
 #include <Vrui/Application.h>
 #include <Vrui/ToolManager.h>
@@ -63,6 +64,7 @@ private:
 	private:
 		VrProteinApp* application;
 		bool dragging;
+		int moleculeIdx;
 		ONTransform dragTransform;
 
 	public:
@@ -70,22 +72,28 @@ private:
 		virtual void dragStartCallback(Vrui::DraggingTool::DragStartCallbackData* cbData);
 		virtual void dragCallback(Vrui::DraggingTool::DragCallbackData* cbData);
 		virtual void dragEndCallback(Vrui::DraggingTool::DragEndCallbackData* cbData);
+		void Reset();	// halt dragging right away
 	};
 
 	friend class MoleculeDragger;
 
 	// Private fields
-	unique_ptr<DrawMolecule> drawMolecule;
+	std::vector<unique_ptr<DrawMolecule>> drawMolecules;
 	DrawStyle selectedStyle;
 	bool selectedUseColor;
-
+	int selectedMoleculeIdx;
 	// Private methods
-	void LoadMolecule(const std::string& fileName);
+	unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
 	void SetDrawStyle(DrawStyle style);
+	int IndexOfMolecule(const std::string& moleculeName) const;
+	std::vector<std::string> GetDropdownItemStrings() const;
+	// Tool items
+	std::vector<unique_ptr<MoleculeDragger>> moleculeDraggers;
 	// UI Items
 	GLMotif::PopupMenu* mainMenu; // The program's main menu
 	GLMotif::ToggleButton* showSettingsDialogToggle;
 	GLMotif::PopupWindow* settingsDialog; // The settings dialog
+	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
 	// UI Constructors
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createSettingsDialog(void);
@@ -93,11 +101,10 @@ private:
 	void centerDisplayCallback(Misc::CallbackData* cbData);
 	void showSettingsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
 	void settingsDialogCloseCallback(Misc::CallbackData* cbData);
-	void moleculePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
+	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
+	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	// Tool items
-	std::vector<unique_ptr<MoleculeDragger>> moleculeDraggers;
 	// Tool Callbacks
 	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
 	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
@@ -112,21 +119,35 @@ VrProteinApp::MoleculeDragger::MoleculeDragger(Vrui::DraggingTool* sTool,
 		VrProteinApp* sApplication) :
 			Vrui::DraggingToolAdapter(sTool),
 			application(sApplication),
-			dragging(false) {
+			dragging(false),
+			moleculeIdx(-1) {
 }
 
 void VrProteinApp::MoleculeDragger::dragStartCallback(
 		Vrui::DraggingTool::DragStartCallbackData* cbData) {
 	/* Find the picked atom: */
-	bool draggedMolecule = false;
-	if (cbData->rayBased && application->drawMolecule->Intersects(cbData->ray))
-		draggedMolecule = true;
-	else if (!cbData->rayBased && application->drawMolecule->Intersects(cbData->startTransformation.getOrigin()))
-		draggedMolecule = true;
+	moleculeIdx = -1;
+	if (cbData->rayBased) {
+		for(int i = 0; i < application->drawMolecules.size(); i++) {
+			if (application->drawMolecules[i]->Intersects(cbData->ray)) {
+				moleculeIdx = i;
+				break;
+			}
+		}
+	}
+	else {
+		Vrui::Point point = cbData->startTransformation.getOrigin();
+		for(int i = 0; i < application->drawMolecules.size(); i++) {
+			if (application->drawMolecules[i]->Intersects(point)) {
+				moleculeIdx = i;
+				break;
+			}
+		}
+	}
 
 	/* Try locking the atom: */
-	if (draggedMolecule) {
-		if (application->drawMolecule->Lock()) {
+	if (moleculeIdx >= 0) {
+		if (application->drawMolecules[moleculeIdx]->Lock()) {
 			std::cout << "Grabbed molecule." << std::endl;
 			dragging = true;
 
@@ -134,13 +155,13 @@ void VrProteinApp::MoleculeDragger::dragStartCallback(
 			dragTransform = ONTransform(cbData->startTransformation.getTranslation(),
 					cbData->startTransformation.getRotation());
 			dragTransform.doInvert();
-			dragTransform *= application->drawMolecule->GetState();
+			dragTransform *= application->drawMolecules[moleculeIdx]->GetState();
 		}
 		else
-			std::cout << "Molecule is locked by other dragger." << std::endl;
+			std::cout << "Molecule is locked by another dragger." << std::endl;
 	}
 	else
-		std::cout << "Nothing to grab at this location" << std::endl;
+		std::cout << "Nothing to grab at this location." << std::endl;
 }
 
 void VrProteinApp::MoleculeDragger::dragCallback(Vrui::DraggingTool::DragCallbackData* cbData) {
@@ -149,7 +170,7 @@ void VrProteinApp::MoleculeDragger::dragCallback(Vrui::DraggingTool::DragCallbac
 		ONTransform transform = ONTransform(cbData->currentTransformation.getTranslation(),
 				cbData->currentTransformation.getRotation());
 		transform *= dragTransform;
-		application->drawMolecule->SetState(transform);
+		application->drawMolecules[moleculeIdx]->SetState(transform);
 	}
 }
 
@@ -157,14 +178,23 @@ void VrProteinApp::MoleculeDragger::dragEndCallback(
 		Vrui::DraggingTool::DragEndCallbackData* cbData) {
 	if (dragging) {
 		std::cout << "Released molecule." << std::endl;
-		auto finalpos = application->drawMolecule->GetState().getOrigin();
+		auto finalpos = application->drawMolecules[moleculeIdx]->GetState().getOrigin();
 		std::cout << "New pos: " << finalpos[0] << ", " << finalpos[1] << ", " << finalpos[2] << std::endl;
 		/* Release the previously dragged atom: */
-		application->drawMolecule->Unlock();
+		application->drawMolecules[moleculeIdx]->Unlock();
+		moleculeIdx = -1;
 		dragging = false;
 	}
 }
 
+void VrProteinApp::MoleculeDragger::Reset() {
+	if (dragging) {
+		std::cout << "Dragger reset." << std::endl;
+		application->drawMolecules[moleculeIdx]->Unlock();
+		moleculeIdx = -1;
+		dragging = false;
+	}
+}
 
 /******************************
  Methods of class VrProteinApp:
@@ -173,9 +203,11 @@ void VrProteinApp::MoleculeDragger::dragEndCallback(
 VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			Vrui::Application(argc, argv),
 			selectedStyle(DrawStyle::Surf),
-			selectedUseColor(true) {
+			selectedUseColor(true),
+			selectedMoleculeIdx(0) {
 	/* load molecule data */
-	LoadMolecule("alanin.pdb");
+	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
+	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
 
 	/* Set the navigation transformation to show the entire scene: */
 	centerDisplayCallback(nullptr);
@@ -187,8 +219,10 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 }
 
 void VrProteinApp::display(GLContextData& contextData) const {
-	// Draw the molecule
-	drawMolecule->Draw(contextData);
+	// Draw the molecules
+	for(auto& m : drawMolecules) {
+		m->Draw(contextData);
+	}
 
 	/* Render the grid's domain box: */
 	GLboolean lightingEnabled=glIsEnabled(GL_LIGHTING);
@@ -228,7 +262,7 @@ void VrProteinApp::display(GLContextData& contextData) const {
 	glVertex(min[0],max[1],max[2]);
 	glEnd();
 	// Linea origen
-	glColor(Vrui::Color(1,0,0));
+	glColor(Vrui::Color(1,1,0));
 	glBegin(GL_LINES);
 	glVertex(-20,0,0);
 	glVertex( 20,0,0);
@@ -278,26 +312,34 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void)
 
 	settingsDialog=new GLMotif::PopupWindow("SettingsDialog",Vrui::getWidgetManager(),"Settings Dialog");
 	settingsDialog->setCloseButton(true);
-	//settingsDialog->setResizableFlags(false,false);
 	settingsDialog->getCloseCallbacks().add(this,&VrProteinApp::settingsDialogCloseCallback);
 
 	GLMotif::RowColumn* settings=new GLMotif::RowColumn("Settings",settingsDialog,false);
 	//settings->setNumMinorWidgets(2);
 
-	new GLMotif::Label("MoleculeLabel",settings,"Load molecule:");
+
+	// Molecule selector dropdown
+	new GLMotif::Label("SelectedLabel",settings,"Selected molecule:");
+	auto molItems = GetDropdownItemStrings();
+	moleculeSelector = new GLMotif::DropdownBox("moleculeSelector", settings, molItems, false);
+	moleculeSelector->getValueChangedCallbacks().add(this, &VrProteinApp::moleculeSelectorChangedCallback);
+	moleculeSelector->manageChild();
+
 
 	// Molecule Picker radio box
-	auto moleculePicker = new GLMotif::RadioBox("MoleculePicker", settings, false);
-	new GLMotif::ToggleButton("AlaninBtn", moleculePicker, "alanin.pdb");
-	new GLMotif::ToggleButton("DNABtn", moleculePicker, "dna.pdb");
-	new GLMotif::ToggleButton("BrHBtn", moleculePicker, "brH.pdb");
-	moleculePicker->getValueChangedCallbacks().add(this, &VrProteinApp::moleculePickerChangedCallback);
-	moleculePicker->setSelectionMode(GLMotif::RadioBox::ALWAYS_ONE);
-	moleculePicker->manageChild();
+	new GLMotif::Label("LoadLabel",settings,"Load molecule:");
+	auto moleculeLoader = new GLMotif::RadioBox("MoleculeLoader", settings, false);
+	new GLMotif::ToggleButton("AlaninBtn", moleculeLoader, "alanin.pdb");
+	new GLMotif::ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
+	new GLMotif::ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
+	moleculeLoader->getValueChangedCallbacks().add(this, &VrProteinApp::moleculeLoaderChangedCallback);
+	moleculeLoader->setSelectionMode(GLMotif::RadioBox::ALWAYS_ONE);
+	moleculeLoader->setSelectedToggle(0); // Alanin default
+	moleculeLoader->manageChild();
 
-	new GLMotif::Label("StyleLabel",settings,"Render style:");
 
 	// Style picker radio box
+	new GLMotif::Label("StyleLabel",settings,"Render style:");
 	auto stylePicker = new GLMotif::RadioBox("StylePicker", settings, false);
 	new GLMotif::ToggleButton("PointsBtn", stylePicker, "Points");
 	new GLMotif::ToggleButton("SurfBtn", stylePicker, "Surf");
@@ -306,6 +348,7 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void)
 	stylePicker->setSelectionMode(GLMotif::RadioBox::ALWAYS_ONE);
 	stylePicker->manageChild();
 
+	// Use colors toggle
 	auto colorBtn = new GLMotif::ToggleButton("ColorBtn", settings, "Use colors");
 	colorBtn->setToggle(true); // UseColor default
 	colorBtn->getValueChangedCallbacks().add(this, &VrProteinApp::colorToggleChangedCallback);
@@ -315,6 +358,13 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void)
 	return settingsDialog;
 	}
 
+std::vector<std::string> VrProteinApp::GetDropdownItemStrings() const {
+	auto items = std::vector<std::string>();
+	for(int i = 0; i < drawMolecules.size(); i++) {
+		items.push_back(std::to_string(i) + ": " + drawMolecules[i]->GetName());
+	}
+	return items;
+}
 
 /* Center display on currently loaded molecule */
 void VrProteinApp::centerDisplayCallback(Misc::CallbackData* cbData) {
@@ -336,13 +386,31 @@ void VrProteinApp::settingsDialogCloseCallback(Misc::CallbackData* cbData) {
 	showSettingsDialogToggle->setToggle(false);
 }
 
+/* Selected a new molecule */
+void VrProteinApp::moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData) {
+	selectedMoleculeIdx = cbData->newSelectedItem;
+}
+
 /* Load a new molecule */
-void VrProteinApp::moleculePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData) {
+void VrProteinApp::moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData) {
 	std::string name = cbData->newSelectedToggle->getString();
 	std::cout << "Selected " << name << " from picker." << std::endl;
-	LoadMolecule(name);
-	/* Set the navigation transformation to show the entire scene: */
-	centerDisplayCallback(nullptr);
+
+	drawMolecules[selectedMoleculeIdx] = LoadMolecule(name);
+	// update dropdown label
+	// TODO: ARREGLAR ESTO
+	//auto dropdownItem = const_cast<GLMotif::Button*>(static_cast<const GLMotif::Button*>
+	//						(moleculeSelector->getItemWidget(selectedMoleculeIdx)));
+	//dropdownItem->setString(name.c_str());
+	moleculeSelector->clearItems();
+	for(auto& str : GetDropdownItemStrings()) {
+		moleculeSelector->addItem(str.c_str());
+	}
+	moleculeSelector->setSelectedItem(selectedMoleculeIdx);
+
+	// reset all draggers, just in case
+	for(auto& d : moleculeDraggers)
+		d->Reset();
 }
 
 /* Toggle draw style */
@@ -351,11 +419,12 @@ void VrProteinApp::stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCal
 	std::cout << "Selected style " << style << " from picker." << std::endl;
 	if(style == "Points") {
 		selectedStyle = DrawStyle::Points;
-		drawMolecule->SetDrawStyle(DrawStyle::Points);
+
+		drawMolecules[selectedMoleculeIdx]->SetDrawStyle(DrawStyle::Points);
 	}
 	else if (style == "Surf") {
 		selectedStyle = DrawStyle::Surf;
-		drawMolecule->SetDrawStyle(DrawStyle::Surf);
+		drawMolecules[selectedMoleculeIdx]->SetDrawStyle(DrawStyle::Surf);
 	}
 	else
 		throw "Unknown style " + style;
@@ -364,7 +433,7 @@ void VrProteinApp::stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCal
 /* Toggle use of color in molecules */
 void VrProteinApp::colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
 	selectedUseColor = cbData->set;
-	drawMolecule->SetColorStyle(cbData->set);
+	drawMolecules[selectedMoleculeIdx]->SetColorStyle(cbData->set);
 }
 
 void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {
@@ -394,9 +463,9 @@ void VrProteinApp::toolDestructionCallback(Vrui::ToolManager::ToolDestructionCal
 
 
 /* Load a molecule from file */
-void VrProteinApp::LoadMolecule(const std::string& fileName) {
-	auto m = PDBImporter::ParsePDB(fileName);
-	drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
+unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName) {
+	unique_ptr<Molecule> m = PDBImporter::ParsePDB(fileName);
+	auto drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
 
 	drawMolecule->SetDrawStyle(selectedStyle);
 	drawMolecule->SetColorStyle(selectedUseColor);
@@ -406,6 +475,17 @@ void VrProteinApp::LoadMolecule(const std::string& fileName) {
 		drawMolecule->GetCenter(x, y, z);
 	}
 	drawMolecule->SetState(ONTransform::translateToOriginFrom(Point(x, y, z)));
+	return drawMolecule;
+}
+
+/* Find index of molecule by its name. Throws on failure. */
+int VrProteinApp::IndexOfMolecule(const std::string& moleculeName) const {
+	for (int i = 0; i < drawMolecules.size(); i++) {
+		if (drawMolecules[i]->GetName() == moleculeName) {
+			return i;
+		}
+	}
+	throw new std::runtime_error("Molecule not found: " + moleculeName);
 }
 
 

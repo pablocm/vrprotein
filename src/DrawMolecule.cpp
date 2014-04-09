@@ -205,6 +205,10 @@ void DrawMolecule::GetCenter(float &x, float &y, float &z) {
 	molecule->GetCenter(x, y, z);
 }
 
+std::string DrawMolecule::GetName() const {
+	return molecule->source_filename;
+}
+
 void DrawMolecule::SetColorStyle(bool useColor) {
 	this->useColor = useColor;
 }

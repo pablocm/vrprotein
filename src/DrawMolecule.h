@@ -35,6 +35,7 @@ public:
 	void Draw(GLContextData& contextData) const;
 	void ComputeSurf();
 	void GetCenter(float &x, float &y, float &z);
+	std::string GetName() const;
 	void SetDrawStyle(DrawStyle style);
 	void SetColorStyle(bool useColor);
 private:
