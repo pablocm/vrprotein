@@ -29,3 +29,12 @@ o/
 .cproject
 .project
 .settings/
+
+# Protein files
+*.pdb
+*.psf
+*.pdb.tri
+
+# Misc
+OculusRiftCalibration.dat
+MeasurementTool*.dat
