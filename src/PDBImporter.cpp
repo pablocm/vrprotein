@@ -11,11 +11,10 @@
 #include <string>
 #include "utils/string.h"
 #include "PDBImporter.h"
-#include "Molecule.h"
-#include "MolAtom.h"
 
 using namespace std;
 
+namespace VrProtein {
 namespace PDBImporter {
 
 /**
@@ -44,7 +43,6 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
 	return molecule;
 }
 
-
 // http://www.wwpdb.org/documentation/format33/sect9.html#ATOM
 /*
  COLUMNS        DATA  TYPE    FIELD        DEFINITION
@@ -68,17 +66,17 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
 unique_ptr<MolAtom> ParsePDBAtom(const string &line) {
 	auto atom = unique_ptr<MolAtom>(new MolAtom);
 
-	atom->serial 	= stoi(line.substr(6, 5));
-	atom->name 		= trim(line.substr(12, 4));
-	atom->altLoc 	= trim(line.substr(16, 1));
-	atom->resName 	= trim(line.substr(17, 3));
-	atom->x 		= stof(line.substr(30, 8));
-	atom->y 		= stof(line.substr(38, 8));
-	atom->z 		= stof(line.substr(46, 8));
+	atom->serial = stoi(line.substr(6, 5));
+	atom->name = trim(line.substr(12, 4));
+	atom->altLoc = trim(line.substr(16, 1));
+	atom->resName = trim(line.substr(17, 3));
+	atom->x = stof(line.substr(30, 8));
+	atom->y = stof(line.substr(38, 8));
+	atom->z = stof(line.substr(46, 8));
 	atom->occupancy = stof(line.substr(54, 6));
-	atom->tempFactor= stof(line.substr(60, 6));
-	atom->short_name= short_name(atom->name);
-	atom->radius	= default_radius(atom->short_name);
+	atom->tempFactor = stof(line.substr(60, 6));
+	atom->short_name = short_name(atom->name);
+	atom->radius = default_radius(atom->short_name);
 
 	//cout << atom->name << ": " << atom->x << ", " << atom->y << ", " << atom->z << endl;
 	return atom;
@@ -93,22 +91,35 @@ char short_name(const string& name) {
 	return toupper(nm[0]);
 }
 
-
 // return a 'default' radius for a given atom name
 // Taken from VMD: BaseMolecule.C:552
 float default_radius(const char name) {
 	float val = 1.5f;
-	switch(name) {
-		// These are similar to the values used by X-PLOR with sigma=0.8
-		// see page 50 of the X-PLOR 3.1 manual
-		case 'H' : val = 1.00f; break;
-		case 'C' : val = 1.50f; break;
-		case 'N' : val = 1.40f; break;
-		case 'O' : val = 1.30f; break;
-		case 'F' : val = 1.20f; break;
-		case 'S' : val = 1.90f; break;
+	switch (name) {
+	// These are similar to the values used by X-PLOR with sigma=0.8
+	// see page 50 of the X-PLOR 3.1 manual
+	case 'H':
+		val = 1.00f;
+		break;
+	case 'C':
+		val = 1.50f;
+		break;
+	case 'N':
+		val = 1.40f;
+		break;
+	case 'O':
+		val = 1.30f;
+		break;
+	case 'F':
+		val = 1.20f;
+		break;
+	case 'S':
+		val = 1.90f;
+		break;
 	}
 	return val;
+}
+
 }
 
 }

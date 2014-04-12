@@ -10,6 +10,8 @@
 
 #include <string>
 
+namespace VrProtein {
+
 class MolAtom {
 public:
 	int serial;
@@ -27,5 +29,7 @@ public:
 	char short_name;	// H, C, N, O, F, S, etc...
 	float radius;
 };
+
+}
 
 #endif /* MOLATOM_H_ */

@@ -11,6 +11,8 @@
 #include <vector>
 #include "MolAtom.h"
 
+namespace VrProtein {
+
 class Molecule {
 public:
 	std::string source_filename;	// archivo PDB
@@ -26,5 +28,7 @@ private:
 	float center_z;
 	bool center_calculated;
 };
+
+}
 
 #endif /* MOLECULE_H_ */

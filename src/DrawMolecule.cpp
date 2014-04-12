@@ -5,20 +5,20 @@
  *      Author: pablocm
  */
 
-#include <memory>
 #include <fstream>
 #include <iostream>
 #include <GL/gl.h>
+#include <GL/GLContextData.h>
 #include <GL/GLMaterialTemplates.h>
 #include <GL/GLModels.h>
 #include <GL/GLTransformationWrappers.h>
 #include <Geometry/Sphere.h>
-#include <Geometry/Vector.h>
-#include <Vrui/Geometry.h>
 #include "DrawMolecule.h"
 #include "Molecule.h"
 
 using namespace std;
+
+namespace VrProtein {
 
 DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	molecule = move(m);
@@ -26,16 +26,15 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	surfComputed = false;
 	useColor = true;
 	locked = false;
-	position = Vrui::Point::origin;
-	orientation = Vrui::Rotation::identity;
+	position = Point::origin;
+	orientation = Rotation::identity;
 }
 
-
-bool DrawMolecule::Intersects(const Vrui::Ray& r) const {
-	Geometry::Sphere<Vrui::Scalar, 3> sphere(Vrui::Point::origin, 0);  // Test sphere
+bool DrawMolecule::Intersects(const Ray& r) const {
+	Geometry::Sphere<Scalar, 3> sphere(Point::origin, 0);  // Test sphere
 	for (auto& atom : molecule->GetAtoms()) {
 		sphere.setCenter(
-				Vrui::Point(atom->x + position[0], atom->y + position[1], atom->z + position[2]));
+				Point(atom->x + position[0], atom->y + position[1], atom->z + position[2]));
 		sphere.setRadius(atom->radius * 1.5);
 
 		auto hitResult = sphere.intersectRay(r);
@@ -46,11 +45,10 @@ bool DrawMolecule::Intersects(const Vrui::Ray& r) const {
 	return false;
 }
 
-bool DrawMolecule::Intersects(const Vrui::Point& p) const {
-	std::cout << "Checking intersect at " << p[0] << ", " << p[1] << ", " << p[2] << std::endl;
+bool DrawMolecule::Intersects(const Point& p) const {
 	auto transform = GetState();
 	for (auto& atom : molecule->GetAtoms()) {
-		auto position = Vrui::Point(atom->x, atom->y, atom->z);
+		auto position = Point(atom->x, atom->y, atom->z);
 		position = transform.transform(position);
 
 		auto dist2 = Geometry::sqrDist(p, position);
@@ -70,30 +68,35 @@ void DrawMolecule::Unlock() {
 	locked = false;
 }
 
-Vrui::ONTransform DrawMolecule::GetState() const {
-	return Vrui::ONTransform(position - Vrui::Point::origin, orientation);
+ONTransform DrawMolecule::GetState() const {
+	return ONTransform(position - Point::origin, orientation);
 }
 
-void DrawMolecule::SetState(const Vrui::ONTransform& newState) {
+void DrawMolecule::SetState(const ONTransform& newState) {
 	position = newState.getOrigin();
 	orientation = newState.getRotation();
 }
 
+void DrawMolecule::initContext(GLContextData& contextData) const {
+	DataItem* dataItem = new DataItem;
+	contextData.addDataItem(this, dataItem);
+}
 
-void DrawMolecule::Draw(GLContextData& contextData) const {
+void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 	glPushMatrix();
 	glMultMatrix(GetState());
 
 	switch (style) {
 	case DrawStyle::Points:
-		DrawPoints(contextData); break;
+		DrawPoints(contextData);
+		break;
 	case DrawStyle::Surf:
-		DrawSurf(contextData); break;
+		DrawSurf(contextData);
+		break;
 	}
 
 	glPopMatrix();
 }
-
 
 /**
  * Dibujar molecula usando esferas.
@@ -106,21 +109,21 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 		if (useColor) {
 			auto color = AtomColor(a->short_name);
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, *color);
-		} else {
+		}
+		else {
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT,
-					GLColor<GLfloat, 4>(0.9f, 0.9f, 0.9f));
+					Color(0.9f, 0.9f, 0.9f));
 		}
 
 		//glVertex3f(a->x, a->y, a->z);
 
 		glPushMatrix();
 		glTranslated(a->x, a->y, a->z);
-		glDrawSphereIcosahedron(a->radius/2, 1);
+		glDrawSphereIcosahedron(a->radius / 2, 1);
 		glPopMatrix();
 	}
 	//glEnd();
 }
-
 
 /**
  * Dibujar usando superficie.
@@ -138,7 +141,7 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 		}
 	}
 	else {
-		glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, GLColor<GLfloat, 4>(0.9f, 0.9f, 0.9f));
+		glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
 		for (auto& v : vertices) {
 			glVertex(*v);
 		}
@@ -146,7 +149,6 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 
 	glEnd();
 }
-
 
 void DrawMolecule::ComputeSurf() {
 	if (surfComputed)
@@ -162,8 +164,8 @@ void DrawMolecule::ComputeSurf() {
 		while (getline(infile, line)) {
 			int atom_id = stoi(line);
 			// leer 3 vertices del triangulo
-			for(int i = 0; i < 3; i++) {
-				if(!getline(infile, line))
+			for (int i = 0; i < 3; i++) {
+				if (!getline(infile, line))
 					throw "Error leyendo .tri";
 				float x, y, z, nx, ny, nz;
 				if (6 != sscanf(line.c_str(), "%f %f %f %f %f %f", &x, &y, &z, &nx, &ny, &nz))
@@ -171,16 +173,16 @@ void DrawMolecule::ComputeSurf() {
 
 				auto vertex = unique_ptr<Vertex>(new Vertex());
 				vertex->color = *AtomColor(molecule->GetAtoms()[atom_id]->short_name).release();
-				//vertex->color = GLColor<GLfloat, 4>(0.9f, 0.9f, 0.9f);
+				//vertex->color = Color(0.9f, 0.9f, 0.9f);
 				vertex->normal = Vertex::Normal(nx, ny, nz);
-				vertex->position = Vertex::Position(x ,y ,z);
+				vertex->position = Vertex::Position(x, y, z);
 
 				vertices.push_back(move(vertex));
 			}
 		}
 		infile.close();
 
-		cout << "Surf computed. Loaded " << (vertices.size()/3) << " triangles." << endl;
+		cout << "Surf computed. Loaded " << (vertices.size() / 3) << " triangles." << endl;
 	}
 	else {
 		cout << "not found." << endl;
@@ -189,17 +191,19 @@ void DrawMolecule::ComputeSurf() {
 	surfComputed = true;
 }
 
-
-unique_ptr<GLColor<GLfloat, 4>> DrawMolecule::AtomColor(char short_name) const {
-	switch(short_name) {
-	case 'H': return unique_ptr<GLColor<GLfloat, 4>>(new GLColor<GLfloat, 4>(1.0f, 0.0f, 0.0f)); // rojo
-	case 'C': return unique_ptr<GLColor<GLfloat, 4>>(new GLColor<GLfloat, 4>(0.0f, 1.0f, 0.0f)); // verde
-	case 'N': return unique_ptr<GLColor<GLfloat, 4>>(new GLColor<GLfloat, 4>(1.0f, 1.0f, 0.0f)); // amarillo
-	case 'O': return unique_ptr<GLColor<GLfloat, 4>>(new GLColor<GLfloat, 4>(0.2f, 0.2f, 1.0f)); // azul
+unique_ptr<DrawMolecule::Color> DrawMolecule::AtomColor(char short_name) const {
+	switch (short_name) {
+	case 'H':
+		return unique_ptr<Color>(new Color(1.0f, 0.0f, 0.0f)); // rojo
+	case 'C':
+		return unique_ptr<Color>(new Color(0.0f, 1.0f, 0.0f)); // verde
+	case 'N':
+		return unique_ptr<Color>(new Color(1.0f, 1.0f, 0.0f)); // amarillo
+	case 'O':
+		return unique_ptr<Color>(new Color(0.2f, 0.2f, 1.0f)); // azul
 	}
-	return unique_ptr<GLColor<GLfloat, 4>>(new GLColor<GLfloat, 4>(0.9f, 0.9f, 0.9f)); // blanco
+	return unique_ptr<Color>(new Color(0.9f, 0.9f, 0.9f)); // blanco
 }
-
 
 void DrawMolecule::GetCenter(float &x, float &y, float &z) {
 	molecule->GetCenter(x, y, z);
@@ -218,4 +222,6 @@ void DrawMolecule::SetDrawStyle(DrawStyle style) {
 	if (style == DrawStyle::Surf) {
 		ComputeSurf();
 	}
+}
+
 }

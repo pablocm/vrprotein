@@ -5,15 +5,17 @@
  *      Author: pablocm
  */
 
-#include <memory>
-//#include <vector>
 #include "Molecule.h"
-#include "MolAtom.h"
 
 using namespace std;
 
+namespace VrProtein {
+
 Molecule::Molecule() :
-		center_x(0), center_y(0), center_z(0), center_calculated(false) {
+			center_x(0),
+			center_y(0),
+			center_z(0),
+			center_calculated(false) {
 }
 
 void Molecule::AddAtom(unique_ptr<MolAtom> &atom) {
@@ -29,7 +31,7 @@ const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
 void Molecule::GetCenter(float &x, float &y, float &z) {
 	if (!center_calculated) {
 		printf("Calculating atom center... ");
-		for(auto& a : atoms) {
+		for (auto& a : atoms) {
 			center_x += a->x;
 			center_y += a->y;
 			center_z += a->z;
@@ -43,4 +45,6 @@ void Molecule::GetCenter(float &x, float &y, float &z) {
 	x = center_x;
 	y = center_y;
 	z = center_z;
+}
+
 }

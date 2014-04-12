@@ -6,3 +6,7 @@
  */
 
 #include "MolAtom.h"
+
+namespace VrProtein {
+
+}

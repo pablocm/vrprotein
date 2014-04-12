@@ -9,30 +9,54 @@
 #define DRAWMOLECULE_H_
 
 #include <memory>
+#include <GL/GLObject.h>
 #include <GL/GLColor.h>
 #include <GL/GLVertex.h>
-#include <GL/GLContextData.h>
-#include <Geometry/Ray.h>
-#include <Geometry/Vector.h>
-#include <Vrui/Geometry.h>
+#include "AffineSpace.h"
 #include "Molecule.h"
 
-enum class DrawStyle { Points, Surf };
+/* Forward declarations: */
+class GLContextData;
 
-class DrawMolecule {
+namespace VrProtein {
+
+enum class DrawStyle {
+	Points, Surf
+};
+
+class DrawMolecule: public GLObject {
 public:
-	typedef GLVertex<void,0,GLfloat,4,GLfloat,GLfloat,3> Vertex; // Type for render vertices
+	/* Embedded classes: */
+	typedef GLVertex<void, 0, GLfloat, 4, GLfloat, GLfloat, 3> Vertex;
+	typedef GLColor<GLfloat, 4> Color;
 
+	struct DataItem: public GLObject::DataItem {
+	public:
+		GLuint displayListId;
+
+		/* Constructors and destructors: */
+		DataItem(void) {
+			/* Create the display list: */
+			displayListId = glGenLists(1);
+		}
+
+		virtual ~DataItem(void) {
+			/* Destroy the display list: */
+			glDeleteLists(displayListId, 1);
+		}
+	};
+
+	/* Public Methods: */
 	DrawMolecule(std::unique_ptr<Molecule> m);
-
-	bool Intersects(const Vrui::Ray& r) const;
-	bool Intersects(const Vrui::Point& p) const;
+	bool Intersects(const Ray& r) const;
+	bool Intersects(const Point& p) const;
 	bool Lock();
 	void Unlock();
-	Vrui::ONTransform GetState() const;	// Returns position and orientation of molecule
-	void SetState(const Vrui::ONTransform& newState); // Sets state of molecule. Atom must be locked by caller.
+	ONTransform GetState() const;	// Returns position and orientation of molecule
+	void SetState(const ONTransform& newState); // Sets state of molecule. Atom must be locked by caller.
 
-	void Draw(GLContextData& contextData) const;
+	virtual void initContext(GLContextData& contextData) const;
+	void glRenderAction(GLContextData& contextData) const;
 	void ComputeSurf();
 	void GetCenter(float &x, float &y, float &z);
 	std::string GetName() const;
@@ -41,8 +65,8 @@ public:
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<std::unique_ptr<Vertex>> vertices;
-	Vrui::Point position;
-	Vrui::Rotation orientation;
+	Point position;
+	Rotation orientation;
 	bool surfComputed;
 	DrawStyle style;
 	bool useColor;
@@ -50,7 +74,9 @@ private:
 
 	void DrawPoints(GLContextData& contextData) const;
 	void DrawSurf(GLContextData& contextData) const;
-	std::unique_ptr<GLColor<GLfloat, 4>> AtomColor(char short_name) const;
+	std::unique_ptr<DrawMolecule::Color> AtomColor(char short_name) const;
 };
+
+}
 
 #endif /* DRAWMOLECULE_H_ */
