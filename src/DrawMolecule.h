@@ -21,7 +21,7 @@ class GLContextData;
 namespace VrProtein {
 
 enum class DrawStyle {
-	Points, Surf
+	None, Points, Surf
 };
 
 class DrawMolecule: public GLObject {
@@ -32,18 +32,20 @@ public:
 
 	struct DataItem: public GLObject::DataItem {
 	public:
-		GLuint displayListId;
+		// DrawStyle: Surf
+		bool hasVertexBufferObjectExtension; // Flag if the local OpenGL supports the ARB vertex buffer object extension
+		GLuint faceVertexBufferObjectIDs[6]; // Array of vertex buffer object IDs for the Jell-O faces
+		GLuint faceIndexBufferObjectIDs[6]; // Array of index buffer object IDs for the Jell-O faces
+		unsigned int vertexDataVersion; // Version number of the face data in the vertex buffers
+
+		GLuint displayListId;  // The display List for the molecule
+		DrawStyle displayListDrawStyle;  // Selected style for current display list
+		bool displayListUseColor;  // Selected "useColor" for current display list
 
 		/* Constructors and destructors: */
-		DataItem(void) {
-			/* Create the display list: */
-			displayListId = glGenLists(1);
-		}
+		DataItem(void);
 
-		virtual ~DataItem(void) {
-			/* Destroy the display list: */
-			glDeleteLists(displayListId, 1);
-		}
+		virtual ~DataItem(void);
 	};
 
 	/* Public Methods: */

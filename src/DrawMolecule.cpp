@@ -12,6 +12,8 @@
 #include <GL/GLMaterialTemplates.h>
 #include <GL/GLModels.h>
 #include <GL/GLTransformationWrappers.h>
+#include <GL/GLExtensionManager.h>
+#include <GL/Extensions/GLARBVertexBufferObject.h>
 #include <Geometry/Sphere.h>
 #include "DrawMolecule.h"
 #include "Molecule.h"
@@ -19,6 +21,44 @@
 using namespace std;
 
 namespace VrProtein {
+
+/****************************************
+Methods of class DrawMolecule::DataItem:
+****************************************/
+
+DrawMolecule::DataItem::DataItem() :
+			hasVertexBufferObjectExtension(GLARBVertexBufferObject::isSupported()),
+			vertexDataVersion(0) {
+	// this is not used, just for future reference
+	if (hasVertexBufferObjectExtension) {
+		/* Initialize the vertex buffer object extension: */
+		GLARBVertexBufferObject::initExtension();
+
+		/* Create the vertex and index buffer objects: */
+		glGenBuffersARB(6, faceVertexBufferObjectIDs);
+		glGenBuffersARB(6, faceIndexBufferObjectIDs);
+	}
+
+	// Create display list for storing molecule rendering
+	displayListId = glGenLists(1);
+	displayListDrawStyle = DrawStyle::None;
+	displayListUseColor = false;
+}
+
+DrawMolecule::DataItem::~DataItem(void) {
+	if (hasVertexBufferObjectExtension) {
+		/* Destroy the vertex and index buffer objects: */
+		glDeleteBuffersARB(6, faceVertexBufferObjectIDs);
+		glDeleteBuffersARB(6, faceIndexBufferObjectIDs);
+	}
+
+	// Destroy the display list
+	glDeleteLists(displayListId, 1);
+}
+
+/*****************************
+Methods of class DrawMolecule:
+*****************************/
 
 DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	molecule = move(m);
@@ -78,8 +118,38 @@ void DrawMolecule::SetState(const ONTransform& newState) {
 }
 
 void DrawMolecule::initContext(GLContextData& contextData) const {
+	/* Create a context data item and store it in the GLContextData object: */
 	DataItem* dataItem = new DataItem;
 	contextData.addDataItem(this, dataItem);
+
+	if (dataItem->hasVertexBufferObjectExtension) {
+		/* Upload the (mostly invariant) index buffer data for all crystal faces: */
+		/*
+		for (int faceIndex = 0; faceIndex < 6; ++faceIndex) {
+			glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
+					dataItem->faceIndexBufferObjectIDs[faceIndex]);
+
+			//glBufferDataARB(GLenum target, GLsizeiptrARB size, const GLvoid* data, GLenum usage)
+			glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
+					numVertices[faceIndex][0] * 2 * (numVertices[faceIndex][1] - 1) * sizeof(GLuint),
+							indices[faceIndex],
+							GL_STATIC_DRAW_ARB);
+		}
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+		*/
+
+		/*
+		auto that = const_cast<DrawMolecule*>(this);
+		that->ComputeSurf();
+
+		glBegin(GL_TRIANGLES);
+		for (auto& v : vertices) {
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, v->color);
+			glVertex(*v);
+		}
+		glEnd();
+		*/
+	}
 }
 
 void DrawMolecule::glRenderAction(GLContextData& contextData) const {
@@ -93,6 +163,8 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 	case DrawStyle::Surf:
 		DrawSurf(contextData);
 		break;
+	case DrawStyle::None:
+		throw new std::runtime_error("DrawStyle::None is not supported");
 	}
 
 	glPopMatrix();
@@ -102,27 +174,38 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
  * Dibujar molecula usando esferas.
  */
 void DrawMolecule::DrawPoints(GLContextData& contextData) const {
-	//glPointSize(2.0f);
+	/* Get the OpenGL-dependent application data from the GLContextData object: */
+	DataItem* dataItem = contextData.retrieveDataItem<DataItem>(this);
 
-	//glBegin(GL_POINTS);
-	for (auto& a : molecule->GetAtoms()) {
-		if (useColor) {
-			auto color = AtomColor(a->short_name);
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, *color);
-		}
-		else {
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT,
-					Color(0.9f, 0.9f, 0.9f));
-		}
-
-		//glVertex3f(a->x, a->y, a->z);
-
-		glPushMatrix();
-		glTranslated(a->x, a->y, a->z);
-		glDrawSphereIcosahedron(a->radius / 2, 1);
-		glPopMatrix();
+	if (dataItem->displayListDrawStyle == DrawStyle::Points
+			&& dataItem->displayListUseColor == useColor) {
+		/* Call the display list */
+		glCallList(dataItem->displayListId);
 	}
-	//glEnd();
+	else {
+		glDeleteLists(dataItem->displayListId, 1);
+		dataItem->displayListDrawStyle = DrawStyle::Points;
+		dataItem->displayListUseColor = useColor;
+
+		/* Compile and execute a new display list */
+		std::cout << "Compiling new display list" << std::endl;
+		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
+		{
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
+			for (const auto& a : molecule->GetAtoms()) {
+				if (useColor) {
+					auto color = AtomColor(a->short_name);
+					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, *color);
+				}
+
+				glPushMatrix();
+				glTranslated(a->x, a->y, a->z);
+				glDrawSphereIcosahedron(a->radius / 2, 2);
+				glPopMatrix();
+			}
+		}
+		glEndList();
+	}
 }
 
 /**
@@ -132,22 +215,34 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 	if (!surfComputed)
 		throw std::runtime_error("need to compute surf before draw");
 
-	glBegin(GL_TRIANGLES);
+	/* Get the OpenGL-dependent application data from the GLContextData object: */
+	DataItem* dataItem = contextData.retrieveDataItem<DataItem>(this);
 
-	if (useColor) {
-		for (auto& v : vertices) {
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, v->color);
-			glVertex(*v);
-		}
+	if (dataItem->displayListDrawStyle == DrawStyle::Surf
+			&& dataItem->displayListUseColor == useColor) {
+		/* Call the display list */
+		glCallList(dataItem->displayListId);
 	}
 	else {
-		glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
-		for (auto& v : vertices) {
-			glVertex(*v);
-		}
-	}
+		glDeleteLists(dataItem->displayListId, 1);
+		dataItem->displayListDrawStyle = DrawStyle::Surf;
+		dataItem->displayListUseColor = useColor;
 
-	glEnd();
+		/* Compile and execute a new display list */
+		std::cout << "Compiling new display list" << std::endl;
+		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
+		{
+			glBegin(GL_TRIANGLES);
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
+			for (auto& v : vertices) {
+				if (useColor)
+					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, v->color);
+				glVertex(*v);
+			}
+			glEnd();
+		}
+		glEndList();
+	}
 }
 
 void DrawMolecule::ComputeSurf() {
