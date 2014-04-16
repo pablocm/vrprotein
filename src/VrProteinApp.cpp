@@ -409,7 +409,7 @@ void VrProteinApp::toolDestructionCallback(Vrui::ToolManager::ToolDestructionCal
 
 /* Load a molecule from file */
 unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName) {
-	unique_ptr<Molecule> m = PDBImporter::ParsePDB(fileName);
+	unique_ptr<Molecule> m = PDBImporter::ParsePDB("./datasets/" + fileName);
 	auto drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
 
 	drawMolecule->SetDrawStyle(selectedStyle);
