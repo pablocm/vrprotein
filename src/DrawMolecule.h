@@ -52,6 +52,7 @@ public:
 	DrawMolecule(std::unique_ptr<Molecule> m);
 	bool Intersects(const Ray& r) const;
 	bool Intersects(const Point& p) const;
+	bool Intersects(const DrawMolecule& other) const;
 	bool Lock();
 	void Unlock();
 	ONTransform GetState() const;	// Returns position and orientation of molecule
@@ -60,7 +61,8 @@ public:
 	virtual void initContext(GLContextData& contextData) const;
 	void glRenderAction(GLContextData& contextData) const;
 	void ComputeSurf();
-	void GetCenter(float &x, float &y, float &z);
+	const Molecule& GetMolecule() const;
+	const Point& GetCenter();
 	std::string GetName() const;
 	void SetDrawStyle(DrawStyle style);
 	void SetColorStyle(bool useColor);

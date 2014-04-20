@@ -12,14 +12,13 @@ using namespace std;
 namespace VrProtein {
 
 Molecule::Molecule() :
-			center_x(0),
-			center_y(0),
-			center_z(0),
+			center(Point::origin),
 			center_calculated(false) {
 }
 
 void Molecule::AddAtom(unique_ptr<MolAtom> &atom) {
 	atoms.push_back(move(atom));
+	center_calculated = false;
 }
 
 const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
@@ -28,23 +27,17 @@ const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
 	return atoms;
 }
 
-void Molecule::GetCenter(float &x, float &y, float &z) {
+const Point& Molecule::GetCenter() {
 	if (!center_calculated) {
-		printf("Calculating atom center... ");
+		Vector center_temp = Vector::zero;
 		for (auto& a : atoms) {
-			center_x += a->x;
-			center_y += a->y;
-			center_z += a->z;
+			center_temp += a->position - Point::origin;
 		}
-		center_x /= atoms.size();
-		center_y /= atoms.size();
-		center_z /= atoms.size();
+		center_temp /= atoms.size();
+		center = Point(center_temp);
 		center_calculated = true;
-		printf("done.\n");
 	}
-	x = center_x;
-	y = center_y;
-	z = center_z;
+	return center;
 }
 
 }

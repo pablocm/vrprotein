@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <vector>
+#include "AffineSpace.h"
 #include "MolAtom.h"
 
 namespace VrProtein {
@@ -20,12 +21,10 @@ public:
 	Molecule();
 	void AddAtom(std::unique_ptr<MolAtom> &atom);
 	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
-	void GetCenter(float &x, float &y, float &z);
+	const Point& GetCenter();
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;
-	float center_x;
-	float center_y;
-	float center_z;
+	Point center;
 	bool center_calculated;
 };
 

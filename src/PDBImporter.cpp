@@ -70,9 +70,8 @@ unique_ptr<MolAtom> ParsePDBAtom(const string &line) {
 	atom->name = trim(line.substr(12, 4));
 	atom->altLoc = trim(line.substr(16, 1));
 	atom->resName = trim(line.substr(17, 3));
-	atom->x = stof(line.substr(30, 8));
-	atom->y = stof(line.substr(38, 8));
-	atom->z = stof(line.substr(46, 8));
+	atom->position = Point(stof(line.substr(30, 8)), stof(line.substr(38, 8)),
+			stof(line.substr(46, 8)));
 	atom->occupancy = stof(line.substr(54, 6));
 	atom->tempFactor = stof(line.substr(60, 6));
 	atom->short_name = short_name(atom->name);

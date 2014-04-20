@@ -11,6 +11,7 @@
 #include <GL/GLContextData.h>
 #include <GL/GLMaterialTemplates.h>
 #include <GL/GLModels.h>
+#include <GL/GLGeometryWrappers.h>
 #include <GL/GLTransformationWrappers.h>
 #include <GL/GLExtensionManager.h>
 #include <GL/Extensions/GLARBVertexBufferObject.h>
@@ -71,10 +72,11 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 }
 
 bool DrawMolecule::Intersects(const Ray& r) const {
+	auto transform = GetState();
 	Geometry::Sphere<Scalar, 3> sphere(Point::origin, 0);  // Test sphere
-	for (auto& atom : molecule->GetAtoms()) {
-		sphere.setCenter(
-				Point(atom->x + position[0], atom->y + position[1], atom->z + position[2]));
+	for (const auto& atom : molecule->GetAtoms()) {
+		auto position = transform.transform(atom->position);
+		sphere.setCenter(position);
 		sphere.setRadius(atom->radius * 1.5);
 
 		auto hitResult = sphere.intersectRay(r);
@@ -87,13 +89,26 @@ bool DrawMolecule::Intersects(const Ray& r) const {
 
 bool DrawMolecule::Intersects(const Point& p) const {
 	auto transform = GetState();
-	for (auto& atom : molecule->GetAtoms()) {
-		auto position = Point(atom->x, atom->y, atom->z);
-		position = transform.transform(position);
+	for (const auto& atom : molecule->GetAtoms()) {
+		auto position = transform.transform(atom->position);
 
 		auto dist2 = Geometry::sqrDist(p, position);
 		if (dist2 <= Math::sqr(atom->radius * 1.5))
 			return true;
+	}
+	return false;
+}
+
+bool DrawMolecule::Intersects(const DrawMolecule& other) const {
+	auto transform = GetState();
+	for (const auto& atom : molecule->GetAtoms()) {
+		auto position = transform.transform(atom->position);
+
+		for(const auto& otherAtom : other.molecule->GetAtoms()) {
+			auto otherPosition = other.GetState().transform(otherAtom->position);
+			if (Geometry::sqrDist(position, otherPosition) <= Math::sqr(atom->radius + otherAtom->radius))
+				return true;
+		}
 	}
 	return false;
 }
@@ -199,8 +214,8 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 				}
 
 				glPushMatrix();
-				glTranslated(a->x, a->y, a->z);
-				glDrawSphereIcosahedron(a->radius / 2, 2);
+				glTranslate(a->position - Point::origin);
+				glDrawSphereIcosahedron(a->radius, 2);
 				glPopMatrix();
 			}
 		}
@@ -300,8 +315,12 @@ unique_ptr<DrawMolecule::Color> DrawMolecule::AtomColor(char short_name) const {
 	return unique_ptr<Color>(new Color(0.9f, 0.9f, 0.9f)); // blanco
 }
 
-void DrawMolecule::GetCenter(float &x, float &y, float &z) {
-	molecule->GetCenter(x, y, z);
+const Molecule& DrawMolecule::GetMolecule() const {
+	return *molecule;
+}
+
+const Point& DrawMolecule::GetCenter() {
+	return molecule->GetCenter();
 }
 
 std::string DrawMolecule::GetName() const {

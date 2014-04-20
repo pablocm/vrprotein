@@ -30,6 +30,7 @@
 #include <GLMotif/ToggleButton.h>
 #include <GLMotif/RadioBox.h>
 #include <GLMotif/DropdownBox.h>
+#include <GLMotif/TextField.h>
 #include <Vrui/Vrui.h>
 #include <Vrui/Application.h>
 #include <Vrui/ToolManager.h>
@@ -77,6 +78,9 @@ private:
 	DrawStyle selectedStyle;
 	bool selectedUseColor;
 	int selectedMoleculeIdx;
+	// Statistics
+	float heuristicValue;
+	bool isOverlapping;
 	// Private methods
 	unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
 	void SetDrawStyle(DrawStyle style);
@@ -89,6 +93,8 @@ private:
 	GLMotif::ToggleButton* showSettingsDialogToggle;
 	GLMotif::PopupWindow* settingsDialog; // The settings dialog
 	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
+	GLMotif::TextField* heuristicTextField;
+	GLMotif::TextField* isOverlappingTextField;
 	// UI Constructors
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createSettingsDialog(void);
@@ -204,6 +210,10 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
 	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
 
+	/* Move them away */
+	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
+	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point( 10, 0, 0)));
+
 	/* Set the navigation transformation to show the entire scene: */
 	centerDisplayCallback(nullptr);
 
@@ -223,6 +233,12 @@ void VrProteinApp::display(GLContextData& contextData) const {
 }
 
 void VrProteinApp::frame() {
+	heuristicValue += 0.012;
+	isOverlapping = drawMolecules[0]->Intersects(*drawMolecules[1]);
+
+	// Update statistics
+	heuristicTextField->setValue(heuristicValue);
+	isOverlappingTextField->setString(isOverlapping ? "True" : "False");
 }
 
 /**************
@@ -292,6 +308,14 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	auto colorBtn = new GLMotif::ToggleButton("ColorBtn", settings, "Use colors");
 	colorBtn->setToggle(true); // UseColor default
 	colorBtn->getValueChangedCallbacks().add(this, &VrProteinApp::colorToggleChangedCallback);
+
+	// Heuristic value
+	new GLMotif::Label("HeuristicLabel", settings, "Heuristic value:");
+	heuristicTextField = new GLMotif::TextField("HeuristicTextField", settings, 6, true);
+
+	// Is Overlapping
+	new GLMotif::Label("IsOverlappingLabel", settings, "Is Overlapping:");
+	isOverlappingTextField = new GLMotif::TextField("IsOverlappingTextField", settings, 6, true);
 
 	settings->manageChild();
 
@@ -415,11 +439,11 @@ unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName)
 	drawMolecule->SetDrawStyle(selectedStyle);
 	drawMolecule->SetColorStyle(selectedUseColor);
 
-	float x = 0, y = 0, z = 0;
+	Point center;
 	if (drawMolecule) {
-		drawMolecule->GetCenter(x, y, z);
+		center = drawMolecule->GetCenter();
 	}
-	drawMolecule->SetState(ONTransform::translateToOriginFrom(Point(x, y, z)));
+	drawMolecule->SetState(ONTransform::translateToOriginFrom(center));
 	return drawMolecule;
 }
 

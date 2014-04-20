@@ -9,6 +9,7 @@
 #define MOLATOM_H_
 
 #include <string>
+#include "AffineSpace.h"
 
 namespace VrProtein {
 
@@ -21,13 +22,11 @@ public:
 	std::string chainID;
 	std::string resSeq;
 	std::string iCode;
-	float x;
-	float y;
-	float z;
-	float occupancy;
-	float tempFactor;
+	Point position;
+	Scalar occupancy;
+	Scalar tempFactor;
 	char short_name;	// H, C, N, O, F, S, etc...
-	float radius;
+	Scalar radius;
 };
 
 }
