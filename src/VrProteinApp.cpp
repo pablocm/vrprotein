@@ -41,6 +41,7 @@
 #include "Molecule.h"
 #include "DrawMolecule.h"
 #include "DomainBox.h"
+#include "Simulator.h"
 
 using namespace VrProtein;
 using std::unique_ptr;
@@ -73,14 +74,12 @@ private:
 	friend class MoleculeDragger;
 
 	// Private fields
+	Simulator simulator;
 	DomainBox domainBox;
 	std::vector<unique_ptr<DrawMolecule>> drawMolecules;
 	DrawStyle selectedStyle;
 	bool selectedUseColor;
 	int selectedMoleculeIdx;
-	// Statistics
-	float heuristicValue;
-	bool isOverlapping;
 	// Private methods
 	unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
 	void SetDrawStyle(DrawStyle style);
@@ -94,7 +93,7 @@ private:
 	GLMotif::PopupWindow* settingsDialog; // The settings dialog
 	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
 	GLMotif::TextField* heuristicTextField;
-	GLMotif::TextField* isOverlappingTextField;
+	GLMotif::TextField* overlappingTextField;
 	// UI Constructors
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createSettingsDialog(void);
@@ -233,12 +232,13 @@ void VrProteinApp::display(GLContextData& contextData) const {
 }
 
 void VrProteinApp::frame() {
-	heuristicValue += 0.012;
-	isOverlapping = drawMolecules[0]->Intersects(*drawMolecules[1]);
+	// Calculate stuff
+	auto overlappingAmount = drawMolecules[0]->Intersects(*drawMolecules[1]);
+	auto simResult = simulator.step(*drawMolecules[0], *drawMolecules[1]);
 
-	// Update statistics
-	heuristicTextField->setValue(heuristicValue);
-	isOverlappingTextField->setString(isOverlapping ? "True" : "False");
+	// Draw statistics
+	heuristicTextField->setValue(simResult.energy);
+	overlappingTextField->setValue(overlappingAmount);
 }
 
 /**************
@@ -314,8 +314,8 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	heuristicTextField = new GLMotif::TextField("HeuristicTextField", settings, 6, true);
 
 	// Is Overlapping
-	new GLMotif::Label("IsOverlappingLabel", settings, "Is Overlapping:");
-	isOverlappingTextField = new GLMotif::TextField("IsOverlappingTextField", settings, 6, true);
+	new GLMotif::Label("overlappingLabel", settings, "Overlapping amount:");
+	overlappingTextField = new GLMotif::TextField("overlappingTextField", settings, 6, true);
 
 	settings->manageChild();
 

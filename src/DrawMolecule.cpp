@@ -99,18 +99,22 @@ bool DrawMolecule::Intersects(const Point& p) const {
 	return false;
 }
 
-bool DrawMolecule::Intersects(const DrawMolecule& other) const {
+Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
+	Scalar intersectionAmount = 0;
 	auto transform = GetState();
+	auto otherTransform = other.GetState();
 	for (const auto& atom : molecule->GetAtoms()) {
 		auto position = transform.transform(atom->position);
 
 		for(const auto& otherAtom : other.molecule->GetAtoms()) {
-			auto otherPosition = other.GetState().transform(otherAtom->position);
-			if (Geometry::sqrDist(position, otherPosition) <= Math::sqr(atom->radius + otherAtom->radius))
-				return true;
+			auto otherPosition = otherTransform.transform(otherAtom->position);
+			auto dist2 = Geometry::sqrDist(position, otherPosition);
+			auto mindist2 = Math::sqr(atom->radius + otherAtom->radius);
+			if (dist2 <= mindist2 && mindist2 - dist2 > intersectionAmount)
+				intersectionAmount = mindist2 - dist2;
 		}
 	}
-	return false;
+	return intersectionAmount;
 }
 
 bool DrawMolecule::Lock() {

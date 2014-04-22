@@ -52,7 +52,7 @@ public:
 	DrawMolecule(std::unique_ptr<Molecule> m);
 	bool Intersects(const Ray& r) const;
 	bool Intersects(const Point& p) const;
-	bool Intersects(const DrawMolecule& other) const;
+	Scalar Intersects(const DrawMolecule& other) const;
 	bool Lock();
 	void Unlock();
 	ONTransform GetState() const;	// Returns position and orientation of molecule
