@@ -35,6 +35,7 @@
 #include <Vrui/Application.h>
 #include <Vrui/ToolManager.h>
 #include <Vrui/DraggingToolAdapter.h>
+#include <Vrui/CoordinateManager.h>
 #include "utils/backtrace.h"
 #include "AffineSpace.h"
 #include "PDBImporter.h"
@@ -90,17 +91,22 @@ private:
 	// UI Items
 	GLMotif::PopupMenu* mainMenu; // The program's main menu
 	GLMotif::ToggleButton* showSettingsDialogToggle;
+	GLMotif::ToggleButton* showStatisticsDialogToggle;
 	GLMotif::PopupWindow* settingsDialog; // The settings dialog
 	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
-	GLMotif::TextField* heuristicTextField;
-	GLMotif::TextField* overlappingTextField;
+	GLMotif::PopupWindow* statisticsDialog; // The statistics dialog
+	GLMotif::TextField* heuristicTextField;	// Current value for heuristic
+	GLMotif::TextField* overlappingTextField;	// Current value for overlapping
 	// UI Constructors
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createSettingsDialog(void);
+	GLMotif::PopupWindow* createStatisticsDialog(void);
 	// UI Callbacks
 	void centerDisplayCallback(Misc::CallbackData* cbData);
 	void showSettingsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
+	void showStatisticsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
 	void settingsDialogCloseCallback(Misc::CallbackData* cbData);
+	void statisticsDialogCloseCallback(Misc::CallbackData* cbData);
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
 	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
@@ -215,11 +221,14 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 
 	/* Set the navigation transformation to show the entire scene: */
 	centerDisplayCallback(nullptr);
+	/* Set the navigational coordinate system unit: */
+	Vrui::getCoordinateManager()->setUnit(Geometry::LinearUnit(Geometry::LinearUnit::ANGSTROM, 1));
 
 	/* Create the program's user interface: */
 	mainMenu = createMainMenu();
 	Vrui::setMainMenu(mainMenu);
 	settingsDialog = createSettingsDialog();
+	statisticsDialog = createStatisticsDialog();
 }
 
 void VrProteinApp::display(GLContextData& contextData) const {
@@ -246,13 +255,12 @@ void VrProteinApp::frame() {
  **************/
 
 GLMotif::PopupMenu* VrProteinApp::createMainMenu(void) {
-	GLMotif::PopupMenu* mainMenuPopup = new GLMotif::PopupMenu("MainMenuPopup",
-			Vrui::getWidgetManager());
+	auto mainMenuPopup = new GLMotif::PopupMenu("MainMenuPopup", Vrui::getWidgetManager());
 	mainMenuPopup->setTitle("VR Protein App");
 
-	GLMotif::Menu* mainMenu = new GLMotif::Menu("MainMenu", mainMenuPopup, false);
+	auto mainMenu = new GLMotif::Menu("MainMenu", mainMenuPopup, false);
 
-	GLMotif::Button* centerDisplayButton = new GLMotif::Button("CenterDisplayButton", mainMenu,
+	auto centerDisplayButton = new GLMotif::Button("CenterDisplayButton", mainMenu,
 			"Center Display");
 	centerDisplayButton->getSelectCallbacks().add(this, &VrProteinApp::centerDisplayCallback);
 
@@ -260,6 +268,11 @@ GLMotif::PopupMenu* VrProteinApp::createMainMenu(void) {
 			"Show Settings Dialog");
 	showSettingsDialogToggle->getValueChangedCallbacks().add(this,
 			&VrProteinApp::showSettingsDialogCallback);
+
+	showStatisticsDialogToggle = new GLMotif::ToggleButton("ShowStatisticsDialogToggle", mainMenu,
+			"Show Statistics");
+	showStatisticsDialogToggle->getValueChangedCallbacks().add(this,
+				&VrProteinApp::showStatisticsDialogCallback);
 
 	mainMenu->manageChild();
 
@@ -309,17 +322,33 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	colorBtn->setToggle(true); // UseColor default
 	colorBtn->getValueChangedCallbacks().add(this, &VrProteinApp::colorToggleChangedCallback);
 
-	// Heuristic value
-	new GLMotif::Label("HeuristicLabel", settings, "Heuristic value:");
-	heuristicTextField = new GLMotif::TextField("HeuristicTextField", settings, 6, true);
-
-	// Is Overlapping
-	new GLMotif::Label("overlappingLabel", settings, "Overlapping amount:");
-	overlappingTextField = new GLMotif::TextField("overlappingTextField", settings, 6, true);
-
 	settings->manageChild();
 
 	return settingsDialog;
+}
+
+GLMotif::PopupWindow* VrProteinApp::createStatisticsDialog(void) {
+	statisticsDialog = new GLMotif::PopupWindow("StatisticsDialog", Vrui::getWidgetManager(),
+			"Simulation Statistics");
+	statisticsDialog->setCloseButton(true);
+	statisticsDialog->getCloseCallbacks().add(this, &VrProteinApp::statisticsDialogCloseCallback);
+
+	auto statistics = new GLMotif::RowColumn("Statistics", statisticsDialog, false);
+	statistics->setNumMinorWidgets(3);
+
+	// Heuristic value
+	new GLMotif::Label("HeuristicLabel", statistics, "L-J potential:");
+	heuristicTextField = new GLMotif::TextField("HeuristicTextField", statistics, 12, true);
+	new GLMotif::Label("HeuristicUnitsLabel", statistics, "(J)");
+
+	// Is Overlapping
+	new GLMotif::Label("overlappingLabel", statistics, "Overlapping:");
+	overlappingTextField = new GLMotif::TextField("overlappingTextField", statistics, 12, true);
+	new GLMotif::Label("HeuristicUnitsLabel", statistics, "(A)");
+
+	statistics->manageChild();
+
+	return statisticsDialog;
 }
 
 /* Returns a list of currently loaded molecule names and indexes.
@@ -349,8 +378,23 @@ void VrProteinApp::showSettingsDialogCallback(
 		Vrui::popdownPrimaryWidget(settingsDialog);
 }
 
+void VrProteinApp::showStatisticsDialogCallback(
+		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
+	/* Hide or show statistics dialog based on toggle button state: */
+	if (cbData->set) {
+		/* Pop up the statistics dialog: */
+		Vrui::popupPrimaryWidget(statisticsDialog);
+	}
+	else
+		Vrui::popdownPrimaryWidget(statisticsDialog);
+}
+
 void VrProteinApp::settingsDialogCloseCallback(Misc::CallbackData* cbData) {
 	showSettingsDialogToggle->setToggle(false);
+}
+
+void VrProteinApp::statisticsDialogCloseCallback(Misc::CallbackData* cbData) {
+	showStatisticsDialogToggle->setToggle(false);
 }
 
 /* Selected a new molecule */
