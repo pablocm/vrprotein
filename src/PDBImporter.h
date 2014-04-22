@@ -20,6 +20,7 @@ std::unique_ptr<Molecule> ParsePDB(const std::string &filename);
 std::unique_ptr<MolAtom> ParsePDBAtom(const std::string &line);
 char short_name(const std::string& name);
 float default_radius(const char name);
+float default_mass(const char name);
 }
 
 }

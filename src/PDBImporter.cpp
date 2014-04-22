@@ -76,6 +76,7 @@ unique_ptr<MolAtom> ParsePDBAtom(const string &line) {
 	atom->tempFactor = stof(line.substr(60, 6));
 	atom->short_name = short_name(atom->name);
 	atom->radius = default_radius(atom->short_name);
+	atom->mass = default_mass(atom->short_name);
 
 	//cout << atom->name << ": " << atom->x << ", " << atom->y << ", " << atom->z << endl;
 	return atom;
@@ -93,7 +94,7 @@ char short_name(const string& name) {
 // return a 'default' radius for a given atom name
 // Taken from VMD: BaseMolecule.C:552
 float default_radius(const char name) {
-	float val = 1.5f;
+	float val;
 	switch (name) {
 	// These are similar to the values used by X-PLOR with sigma=0.8
 	// see page 50 of the X-PLOR 3.1 manual
@@ -114,6 +115,37 @@ float default_radius(const char name) {
 		break;
 	case 'S':
 		val = 1.90f;
+		break;
+	default:
+		val = 1.5f;
+		break;
+	}
+	return val;
+}
+
+float default_mass(const char name) {
+	float val;
+	switch (name) {
+	case 'H':
+		val = 1.0f;
+		break;
+	case 'C':
+		val = 12.0f;
+		break;
+	case 'N':
+		val = 14.0f;
+		break;
+	case 'O':
+		val = 16.0f;
+		break;
+	case 'F':
+		val = 19.0f;
+		break;
+	case 'S':
+		val = 32.0f;
+		break;
+	default:
+		val = 12.0f;
 		break;
 	}
 	return val;

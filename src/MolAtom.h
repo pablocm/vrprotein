@@ -27,6 +27,7 @@ public:
 	Scalar tempFactor;
 	char short_name;	// H, C, N, O, F, S, etc...
 	Scalar radius;
+	Scalar mass;
 };
 
 }

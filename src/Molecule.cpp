@@ -30,10 +30,12 @@ const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
 const Point& Molecule::GetCenter() {
 	if (!center_calculated) {
 		Vector center_temp = Vector::zero;
-		for (auto& a : atoms) {
-			center_temp += a->position - Point::origin;
+		Scalar totalMass = 0;
+		for (const auto& a : atoms) {
+			center_temp += (a->position - Point::origin) * a->mass;
+			totalMass += a->mass;
 		}
-		center_temp /= atoms.size();
+		center_temp /= totalMass;
 		center = Point(center_temp);
 		center_calculated = true;
 	}
