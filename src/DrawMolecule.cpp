@@ -136,6 +136,10 @@ void DrawMolecule::SetState(const ONTransform& newState) {
 	orientation = newState.getRotation();
 }
 
+const Point& DrawMolecule::GetPosition() const {
+	return position;
+}
+
 void DrawMolecule::initContext(GLContextData& contextData) const {
 	/* Create a context data item and store it in the GLContextData object: */
 	DataItem* dataItem = new DataItem;
@@ -219,7 +223,7 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 
 				glPushMatrix();
 				glTranslate(a->position - Point::origin);
-				glDrawSphereIcosahedron(a->radius, 2);
+				glDrawSphereIcosahedron(a->radius, 1);
 				glPopMatrix();
 			}
 		}

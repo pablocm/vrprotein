@@ -57,6 +57,7 @@ public:
 	void Unlock();
 	ONTransform GetState() const;	// Returns position and orientation of molecule
 	void SetState(const ONTransform& newState); // Sets state of molecule. Atom must be locked by caller.
+	const Point& GetPosition() const;
 
 	virtual void initContext(GLContextData& contextData) const;
 	void glRenderAction(GLContextData& contextData) const;

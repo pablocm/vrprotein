@@ -19,6 +19,9 @@
 
 #include <memory>
 #include <iostream>
+#include <GL/GLModels.h>				// TODO: Temp!
+#include <GL/GLMaterialTemplates.h>		// TODO: Temp!
+#include <GL/GLTransformationWrappers.h>// TODO: Temp!
 #include <GLMotif/StyleSheet.h>
 #include <GLMotif/WidgetManager.h>
 #include <GLMotif/PopupMenu.h>
@@ -81,6 +84,12 @@ private:
 	DrawStyle selectedStyle;
 	bool selectedUseColor;
 	int selectedMoleculeIdx;
+	// statistics
+	bool isSimulating;
+	bool isCalculatingForces;
+	Scalar energy;
+	Vector netForce;
+	Vector netTorque;
 	// Private methods
 	unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
 	void SetDrawStyle(DrawStyle style);
@@ -111,6 +120,9 @@ private:
 	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
+	void simulateToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
+	void calculateForcesToggleChangedCallback(
+			GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
 	// Tool Callbacks
 	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
 	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
@@ -210,7 +222,9 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			Vrui::Application(argc, argv),
 			selectedStyle(DrawStyle::Surf),
 			selectedUseColor(true),
-			selectedMoleculeIdx(0) {
+			selectedMoleculeIdx(0),
+			isSimulating(false),
+			isCalculatingForces(true) {
 	/* load molecule data */
 	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
 	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
@@ -238,16 +252,61 @@ void VrProteinApp::display(GLContextData& contextData) const {
 	for (auto& m : drawMolecules) {
 		m->glRenderAction(contextData);
 	}
+
+	if (isSimulating && isCalculatingForces) {
+		Scalar netForceMag = netForce.mag();
+		if (netForceMag > 0.5f) {
+			auto arrowColor = GLColor<GLfloat, 4>(0.0f, 0.9f, 0.0f); // green
+			if (energy < 0)
+				arrowColor = GLColor<GLfloat, 4>(0.9f, 0.0f, 0.0f); // red
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, arrowColor);
+
+			glPushMatrix();
+			{
+				// TODO: Optimizar
+				Vector rotAxis = Geometry::cross(Vrui::getUpDirection(), netForce);
+				Scalar rotAngle = Math::acos(netForce/netForceMag * Vrui::getUpDirection());
+				glMultMatrix(RotTransform(Rotation(rotAxis, rotAngle)));
+				glDrawArrow(0.5f, 1.0f, 1.0f, Math::min(2 * netForceMag, 25.0), 6);
+			}
+			glPopMatrix();
+		}
+		Scalar netTorqueMag = netTorque.mag();
+		if (netTorqueMag > 0.5f) {
+			auto torqueColor = GLColor<GLfloat, 4>(0.9f, 0.9f, 0.0f);	// yellow
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, torqueColor);
+			glPushMatrix();
+			{
+				// TODO: Optimizar
+				Vector rotAxis = Geometry::cross(Vrui::getUpDirection(), netTorque);
+				Scalar rotAngle = Math::acos(netTorque/netTorqueMag * Vrui::getUpDirection());
+				glMultMatrix(RotTransform(Rotation(rotAxis, rotAngle)));
+				glDrawArrow(0.5f, 1.0f, 1.0f, Math::min(netTorqueMag, 25.0), 6);
+			}
+			glPopMatrix();
+		}
+	}
 }
 
 void VrProteinApp::frame() {
-	// Calculate stuff
-	auto overlappingAmount = drawMolecules[0]->Intersects(*drawMolecules[1]);
-	auto simResult = simulator.step(*drawMolecules[0], *drawMolecules[1]);
+	if (isSimulating) {
+		// Calculate stuff
+		auto overlappingAmount = drawMolecules[0]->Intersects(*drawMolecules[1]);
+		auto simResult = simulator.step(*drawMolecules[0], *drawMolecules[1], isCalculatingForces);
 
-	// Draw statistics
-	heuristicTextField->setValue(simResult.energy);
-	overlappingTextField->setValue(overlappingAmount);
+		energy = simResult.energy;
+		netTorque = simResult.netTorque;
+		netForce = simResult.netForce;
+
+		// Draw statistics
+		heuristicTextField->setValue(simResult.energy); //simResult.netForce.mag()); //
+		overlappingTextField->setValue(overlappingAmount);
+
+	}
+	else {
+		heuristicTextField->setString("---");
+		overlappingTextField->setString("---");
+	}
 }
 
 /**************
@@ -342,9 +401,21 @@ GLMotif::PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 	new GLMotif::Label("HeuristicUnitsLabel", statistics, "(J)");
 
 	// Is Overlapping
-	new GLMotif::Label("overlappingLabel", statistics, "Overlapping:");
+	new GLMotif::Label("overlappingLabel", statistics, "Max overlap:");
 	overlappingTextField = new GLMotif::TextField("overlappingTextField", statistics, 12, true);
 	new GLMotif::Label("HeuristicUnitsLabel", statistics, "(A)");
+
+	// Do realtime statistics
+	auto simulateBtn = new GLMotif::ToggleButton("SimulateBtn", statistics, "Simulate");
+	simulateBtn->setToggle(isSimulating);
+	simulateBtn->getValueChangedCallbacks().add(this, &VrProteinApp::simulateToggleChangedCallback);
+
+	// Calculate forces
+	auto calculateForcesBtn = new GLMotif::ToggleButton("CalculateForcesBtn", statistics,
+			"Calc. forces");
+	calculateForcesBtn->setToggle(isCalculatingForces);
+	calculateForcesBtn->getValueChangedCallbacks().add(this,
+			&VrProteinApp::calculateForcesToggleChangedCallback);
 
 	statistics->manageChild();
 
@@ -448,6 +519,18 @@ void VrProteinApp::colorToggleChangedCallback(
 		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
 	selectedUseColor = cbData->set;
 	drawMolecules[selectedMoleculeIdx]->SetColorStyle(cbData->set);
+}
+
+/* Toggle simulation of molecules */
+void VrProteinApp::simulateToggleChangedCallback(
+		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
+	isSimulating = cbData->set;
+}
+
+/* Toggle calculation of forces and torques */
+void VrProteinApp::calculateForcesToggleChangedCallback(
+		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
+	isCalculatingForces = cbData->set;
 }
 
 void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {

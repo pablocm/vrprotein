@@ -12,6 +12,7 @@
 #include <Geometry/Point.h>
 #include <Geometry/Rotation.h>
 #include <Geometry/OrthonormalTransformation.h>
+#include <Geometry/RotationTransformation.h>
 #include <Geometry/Ray.h>
 
 namespace VrProtein {
@@ -21,6 +22,7 @@ typedef Geometry::Vector<Scalar, 3> Vector;
 typedef Geometry::Point<Scalar, 3> Point;
 typedef Geometry::Rotation<Scalar, 3> Rotation;
 typedef Geometry::OrthonormalTransformation<Scalar, 3> ONTransform;
+typedef Geometry::RotationTransformation<Scalar, 3> RotTransform;
 typedef Geometry::Ray<Scalar, 3> Ray;
 
 }

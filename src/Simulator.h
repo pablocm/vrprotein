@@ -22,13 +22,13 @@ public:
 	/* Embedded classes: */
 	struct SimResult {
 		Vector netForce;
-		Rotation netTorque;
+		Vector netTorque;
 		Scalar energy;
 	};
 
 	/* Methods */
 	Simulator();
-	SimResult step(const DrawMolecule& ligand, const DrawMolecule& receptor);
+	SimResult step(const DrawMolecule& ligand, const DrawMolecule& receptor, bool calcForces);
 };
 
 }
