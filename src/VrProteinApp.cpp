@@ -360,6 +360,8 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	new GLMotif::ToggleButton("AlaninBtn", moleculeLoader, "alanin.pdb");
 	new GLMotif::ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
 	new GLMotif::ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
+	new GLMotif::ToggleButton("1STPBtn", moleculeLoader, "1STP.pdb");
+	new GLMotif::ToggleButton("1STP_BTNBtn", moleculeLoader, "1STP_BTN.pdb");
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
 	moleculeLoader->setSelectionMode(GLMotif::RadioBox::ALWAYS_ONE);
