@@ -17,8 +17,8 @@ namespace VrProtein {
 DomainBox::DomainBox() :
 			min(Point(-40, -40, -40)),
 			max(Point(40, 40, 40)),
-			lineColor(Color(1, 1, 1)),
-			originColor(Color(1, 1, 0)) {
+			lineColor(Color(0, 1, 0)),
+			originColor(Color(1, 1, 1)) {
 }
 
 void DomainBox::initContext(GLContextData& contextData) const {

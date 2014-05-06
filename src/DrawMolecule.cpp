@@ -312,13 +312,13 @@ void DrawMolecule::ComputeSurf() {
 unique_ptr<DrawMolecule::Color> DrawMolecule::AtomColor(char short_name) const {
 	switch (short_name) {
 	case 'H':
-		return unique_ptr<Color>(new Color(1.0f, 0.0f, 0.0f)); // rojo
+		return unique_ptr<Color>(new Color(0.8f, 0.0f, 0.4f)); // rojo
 	case 'C':
-		return unique_ptr<Color>(new Color(0.0f, 1.0f, 0.0f)); // verde
+		return unique_ptr<Color>(new Color(0.3f, 0.8f, 0.3f)); // verde
 	case 'N':
-		return unique_ptr<Color>(new Color(1.0f, 1.0f, 0.0f)); // amarillo
+		return unique_ptr<Color>(new Color(0.8f, 0.8f, 0.6f)); // amarillo
 	case 'O':
-		return unique_ptr<Color>(new Color(0.2f, 0.2f, 1.0f)); // azul
+		return unique_ptr<Color>(new Color(0.5f, 0.3f, 0.8f)); // azul
 	}
 	return unique_ptr<Color>(new Color(0.9f, 0.9f, 0.9f)); // blanco
 }
