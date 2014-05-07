@@ -243,6 +243,9 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	Vrui::setMainMenu(mainMenu);
 	settingsDialog = createSettingsDialog();
 	statisticsDialog = createStatisticsDialog();
+
+	/* Tell Vrui to run in a continuous frame sequence: */
+	Vrui::updateContinuously();
 }
 
 void VrProteinApp::display(GLContextData& contextData) const {
@@ -254,11 +257,12 @@ void VrProteinApp::display(GLContextData& contextData) const {
 	}
 
 	if (isSimulating && isCalculatingForces) {
+		// Draw force arrow
 		Scalar netForceMag = netForce.mag();
 		if (netForceMag > 0.5f) {
-			auto arrowColor = GLColor<GLfloat, 4>(0.0f, 0.9f, 0.0f); // green
+			auto arrowColor = GLColor<GLfloat, 4>(0.3f, 0.9f, 0.3f); // green
 			if (energy < 0)
-				arrowColor = GLColor<GLfloat, 4>(0.9f, 0.0f, 0.0f); // red
+				arrowColor = GLColor<GLfloat, 4>(0.9f, 0.0f, 0.3f); // red
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, arrowColor);
 
 			glPushMatrix();
@@ -271,6 +275,8 @@ void VrProteinApp::display(GLContextData& contextData) const {
 			}
 			glPopMatrix();
 		}
+		// Draw torque arrow
+		/*
 		Scalar netTorqueMag = netTorque.mag();
 		if (netTorqueMag > 0.5f) {
 			auto torqueColor = GLColor<GLfloat, 4>(0.9f, 0.9f, 0.0f);	// yellow
@@ -285,6 +291,7 @@ void VrProteinApp::display(GLContextData& contextData) const {
 			}
 			glPopMatrix();
 		}
+		*/
 	}
 }
 
@@ -297,6 +304,13 @@ void VrProteinApp::frame() {
 		energy = simResult.energy;
 		netTorque = simResult.netTorque;
 		netForce = simResult.netForce;
+
+		// Apply force to molecule
+		if (isCalculatingForces && energy != 0) {
+			auto t = drawMolecules[0]->GetState();
+			auto t2 = ONTransform(netForce.normalize() * 0.04, Rotation(netTorque, 0.008));
+			drawMolecules[0]->SetState(t * t2);
+		}
 
 		// Draw statistics
 		heuristicTextField->setValue(simResult.energy); //simResult.netForce.mag()); //
