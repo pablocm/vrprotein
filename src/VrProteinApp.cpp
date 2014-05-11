@@ -19,9 +19,9 @@
 
 #include <memory>
 #include <iostream>
-#include <GL/GLModels.h>				// TODO: Temp!
-#include <GL/GLMaterialTemplates.h>		// TODO: Temp!
-#include <GL/GLTransformationWrappers.h>// TODO: Temp!
+//#include <GL/GLModels.h>
+//#include <GL/GLMaterialTemplates.h>
+//#include <GL/GLTransformationWrappers.h>
 #include <GLMotif/StyleSheet.h>
 #include <GLMotif/WidgetManager.h>
 #include <GLMotif/PopupMenu.h>
@@ -46,6 +46,7 @@
 #include "DrawMolecule.h"
 #include "DomainBox.h"
 #include "Simulator.h"
+#include "HudWidget.h"
 
 using namespace VrProtein;
 using std::unique_ptr;
@@ -87,9 +88,7 @@ private:
 	// statistics
 	bool isSimulating;
 	bool isCalculatingForces;
-	Scalar energy;
-	Vector netForce;
-	Vector netTorque;
+	Simulator::SimResult simResult;
 	// Private methods
 	unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
 	void SetDrawStyle(DrawStyle style);
@@ -101,9 +100,11 @@ private:
 	GLMotif::PopupMenu* mainMenu; // The program's main menu
 	GLMotif::ToggleButton* showSettingsDialogToggle;
 	GLMotif::ToggleButton* showStatisticsDialogToggle;
+	GLMotif::ToggleButton* showHudWidgetToggle;
 	GLMotif::PopupWindow* settingsDialog; // The settings dialog
 	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
 	GLMotif::PopupWindow* statisticsDialog; // The statistics dialog
+	HudWidget* hudWidget;
 	GLMotif::TextField* heuristicTextField;	// Current value for heuristic
 	GLMotif::TextField* overlappingTextField;	// Current value for overlapping
 	// UI Constructors
@@ -114,6 +115,7 @@ private:
 	void centerDisplayCallback(Misc::CallbackData* cbData);
 	void showSettingsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
 	void showStatisticsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
+	void showHudWidgetCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
 	void settingsDialogCloseCallback(Misc::CallbackData* cbData);
 	void statisticsDialogCloseCallback(Misc::CallbackData* cbData);
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
@@ -243,6 +245,7 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	Vrui::setMainMenu(mainMenu);
 	settingsDialog = createSettingsDialog();
 	statisticsDialog = createStatisticsDialog();
+	hudWidget = new HudWidget("HudWidget", Vrui::getWidgetManager(), "L-J Potential");
 
 	/* Tell Vrui to run in a continuous frame sequence: */
 	Vrui::updateContinuously();
@@ -258,23 +261,24 @@ void VrProteinApp::display(GLContextData& contextData) const {
 
 	if (isSimulating && isCalculatingForces) {
 		// Draw force arrow
-		Scalar netForceMag = netForce.mag();
+		/*
+		Scalar netForceMag = simResult.netForce.mag();
 		if (netForceMag > 0.5f) {
 			auto arrowColor = GLColor<GLfloat, 4>(0.3f, 0.9f, 0.3f); // green
-			if (energy < 0)
+			if (simResult.energy < 0)
 				arrowColor = GLColor<GLfloat, 4>(0.9f, 0.0f, 0.3f); // red
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, arrowColor);
 
 			glPushMatrix();
 			{
-				// TODO: Optimizar
-				Vector rotAxis = Geometry::cross(Vrui::getUpDirection(), netForce);
-				Scalar rotAngle = Math::acos(netForce/netForceMag * Vrui::getUpDirection());
+				Vector rotAxis = Geometry::cross(Vrui::getUpDirection(), simResult.netForce);
+				Scalar rotAngle = Math::acos(simResult.netForce/netForceMag * Vrui::getUpDirection());
 				glMultMatrix(RotTransform(Rotation(rotAxis, rotAngle)));
 				glDrawArrow(0.5f, 1.0f, 1.0f, Math::min(2 * netForceMag, 25.0), 6);
 			}
 			glPopMatrix();
 		}
+		*/
 		// Draw torque arrow
 		/*
 		Scalar netTorqueMag = netTorque.mag();
@@ -283,7 +287,6 @@ void VrProteinApp::display(GLContextData& contextData) const {
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, torqueColor);
 			glPushMatrix();
 			{
-				// TODO: Optimizar
 				Vector rotAxis = Geometry::cross(Vrui::getUpDirection(), netTorque);
 				Scalar rotAngle = Math::acos(netTorque/netTorqueMag * Vrui::getUpDirection());
 				glMultMatrix(RotTransform(Rotation(rotAxis, rotAngle)));
@@ -299,22 +302,20 @@ void VrProteinApp::frame() {
 	if (isSimulating) {
 		// Calculate stuff
 		auto overlappingAmount = drawMolecules[0]->Intersects(*drawMolecules[1]);
-		auto simResult = simulator.step(*drawMolecules[0], *drawMolecules[1], isCalculatingForces);
-
-		energy = simResult.energy;
-		netTorque = simResult.netTorque;
-		netForce = simResult.netForce;
+		simResult = simulator.step(*drawMolecules[0], *drawMolecules[1], isCalculatingForces);
 
 		// Apply force to molecule
-		if (isCalculatingForces && energy != 0) {
+		if (isCalculatingForces && simResult.energy != 0) {
 			auto t = drawMolecules[0]->GetState();
-			auto t2 = ONTransform(netForce.normalize() * 0.04, Rotation(netTorque, 0.008));
+			auto t2 = ONTransform(simResult.netForce.normalize() * 0.04,
+					Rotation(simResult.netTorque, 0.008));
 			drawMolecules[0]->SetState(t * t2);
 		}
 
 		// Draw statistics
 		heuristicTextField->setValue(simResult.energy); //simResult.netForce.mag()); //
 		overlappingTextField->setValue(overlappingAmount);
+		hudWidget->setValue(simResult.energy); //simResult.netForce.mag()); //
 
 	}
 	else {
@@ -346,6 +347,9 @@ GLMotif::PopupMenu* VrProteinApp::createMainMenu(void) {
 			"Show Statistics");
 	showStatisticsDialogToggle->getValueChangedCallbacks().add(this,
 				&VrProteinApp::showStatisticsDialogCallback);
+
+	showHudWidgetToggle = new GLMotif::ToggleButton("ShowHudWidgetToggle", mainMenu, "Show HUD");
+	showHudWidgetToggle->getValueChangedCallbacks().add(this, &VrProteinApp::showHudWidgetCallback);
 
 	mainMenu->manageChild();
 
@@ -474,6 +478,16 @@ void VrProteinApp::showStatisticsDialogCallback(
 	}
 	else
 		Vrui::popdownPrimaryWidget(statisticsDialog);
+}
+
+void VrProteinApp::showHudWidgetCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
+	/* Hide or show HUD dialog based on toggle button state: */
+	if (cbData->set) {
+		/* Pop up the hud dialog: */
+		Vrui::popupPrimaryWidget(hudWidget);
+	}
+	else
+		Vrui::popdownPrimaryWidget(hudWidget);
 }
 
 void VrProteinApp::settingsDialogCloseCallback(Misc::CallbackData* cbData) {
