@@ -90,5 +90,4 @@ if [ $INSTALL_RESULT -ne 0 ]; then
 fi
 
 # Run ShowEarthModel
-echo "To test installtion, try running: ./Vrui-$VRUI_VERSION/bin/ShowEarthModel"
-cd $HOME
+echo "To test installtion, try running: ~/Vrui-$VRUI_VERSION/bin/ShowEarthModel"
