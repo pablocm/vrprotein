@@ -14,15 +14,13 @@ pensado para ambiente virtuales inmersivos.
 Antes de instalar VrProtein es necesario instalar 
 [Vrui 3.0-002](http://idav.ucdavis.edu/~okreylos/ResDev/Vrui). En el sitio 
 oficial están las instrucciones detalladas para su instalación. La forma 
-rápida de instalarlo es con el script de instalación:
+rápida de instalarlo es con el script de instalación (incluido):
 ```
-$ curl http://idav.ucdavis.edu/~okreylos/ResDev/Vrui/Build-Ubuntu.sh
-$ chmod +x Build-Ubuntu.sh
-$ ./Build-Ubuntu.sh
+# Compilar Vrui
+$ bash Build-Ubuntu.sh
+# Compilar Vrprotein
+$ make
 ``` 
-
-Para compilar *VrProtein* basta con ejecutar ```make``` en la carpeta 
-principal.
 
 # Uso
 Antes de abrir la aplicación es necesario bajar los archivos de moléculas 
