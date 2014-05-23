@@ -17,6 +17,7 @@
  59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  ***********************************************************************/
 
+#include "utils/backtrace.h"
 #include <iostream>
 //#include <GL/GLModels.h>
 //#include <GL/GLMaterialTemplates.h>
@@ -26,13 +27,14 @@
 #include <GLMotif/Menu.h>
 #include <GLMotif/RowColumn.h>
 #include <Vrui/CoordinateManager.h>
-#include "utils/backtrace.h"
+#include <Vrui/ToolManager.h>
 #include "VrProteinApp.h"
 #include "DrawMolecule.h"
 #include "HudWidget.h"
 #include "Molecule.h"
 #include "MoleculeDragger.h"
 #include "PDBImporter.h"
+#include "SimulationControlTool.h"
 
 using std::unique_ptr;
 
@@ -77,6 +79,9 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	settingsDialog = createSettingsDialog();
 	statisticsDialog = createStatisticsDialog();
 	hudWidget = new HudWidget("HudWidget", Vrui::getWidgetManager(), "L-J Potential");
+
+	/* Set up custom tools: */
+	SimulationControlTool::registerTool(*Vrui::getToolManager());
 
 	/* Tell Vrui to run in a continuous frame sequence: */
 	Vrui::updateContinuously();
@@ -197,9 +202,9 @@ PopupMenu* VrProteinApp::createMainMenu(void) {
 		auto _app = static_cast<VrProteinApp*>(app);
 		/* Hide or show HUD dialog based on toggle button state: */
 		if (static_cast<ToggleButton::ValueChangedCallbackData*>(cbData)->set)
-			Vrui::popupPrimaryWidget(_app->statisticsDialog);
+			Vrui::popupPrimaryWidget(_app->hudWidget);
 		else
-			Vrui::popdownPrimaryWidget(_app->statisticsDialog);
+			Vrui::popdownPrimaryWidget(_app->hudWidget);
 	}, this);
 
 	mainMenu->manageChild();
@@ -282,15 +287,24 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 	new Label("HeuristicUnitsLabel", statistics, "(A)");
 
 	// Do realtime statistics
-	auto simulateBtn = new ToggleButton("SimulateBtn", statistics, "Simulate");
+	simulateBtn = new ToggleButton("SimulateBtn", statistics, "Simulate");
 	simulateBtn->setToggle(isSimulating);
-	simulateBtn->getValueChangedCallbacks().add(this, &VrProteinApp::simulateToggleChangedCallback);
+	simulateBtn->getValueChangedCallbacks().add([](CallbackData* cbData, void* app) {
+		auto _app = static_cast<VrProteinApp*>(app);
+		auto _cbData = static_cast<ToggleButton::ValueChangedCallbackData*>(cbData);
+		/* Set simulation status based on toggle button state: */
+		_app->toggleSimulation(_cbData->set, false);
+	}, this);
 
 	// Calculate forces
-	auto calculateForcesBtn = new ToggleButton("CalculateForcesBtn", statistics, "Calc. forces");
+	calculateForcesBtn = new ToggleButton("CalculateForcesBtn", statistics, "Calc. forces");
 	calculateForcesBtn->setToggle(isCalculatingForces);
-	calculateForcesBtn->getValueChangedCallbacks().add(this,
-			&VrProteinApp::calculateForcesToggleChangedCallback);
+	calculateForcesBtn->getValueChangedCallbacks().add([](CallbackData* cbData, void* app) {
+		auto _app = static_cast<VrProteinApp*>(app);
+		auto _cbData = static_cast<ToggleButton::ValueChangedCallbackData*>(cbData);
+		/* Set simulation status based on toggle button state: */
+		_app->toggleSimulation(_cbData->set, false);
+	}, this);
 
 	statistics->manageChild();
 
@@ -311,6 +325,27 @@ std::vector<std::string> VrProteinApp::GetDropdownItemStrings() const {
 void VrProteinApp::centerDisplay() {
 	std::cout << "Centering display." << std::endl;
 	Vrui::setNavigationTransformation(Point::origin, Scalar(40));
+}
+
+/* Toggle simulation of molecules */
+void VrProteinApp::toggleSimulation(bool simulate, bool refreshUI /* = true */) {
+	std::cout << "Toggling simulation to " << simulate << std::endl;
+	isSimulating = simulate;
+	if (refreshUI) {
+		simulateBtn->setToggle(simulate);
+	}
+}
+
+/* Toggle calculation of forces and torques */
+void VrProteinApp::toggleForces(bool calculateForces, bool refreshUI /* = true */) {
+	std::cout << "Toggling force calc. to " << calculateForces << std::endl;
+	isCalculatingForces = calculateForces;
+	// Turn on simulation if it was disabled
+	if (calculateForces)
+		toggleSimulation(true);
+	if (refreshUI) {
+		calculateForcesBtn->setToggle(calculateForces);
+	}
 }
 
 /* Selected a molecule for editing in settings dialog */
@@ -359,18 +394,8 @@ void VrProteinApp::colorToggleChangedCallback(ToggleButton::ValueChangedCallback
 	drawMolecules[selectedMoleculeIdx]->SetColorStyle(cbData->set);
 }
 
-/* Toggle simulation of molecules */
-void VrProteinApp::simulateToggleChangedCallback(ToggleButton::ValueChangedCallbackData* cbData) {
-	isSimulating = cbData->set;
-}
-
-/* Toggle calculation of forces and torques */
-void VrProteinApp::calculateForcesToggleChangedCallback(
-		ToggleButton::ValueChangedCallbackData* cbData) {
-	isCalculatingForces = cbData->set;
-}
-
 void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {
+	Application::toolCreationCallback(cbData);
 	/* Check if the new tool is a dragging tool: */
 	Vrui::DraggingTool* tool = dynamic_cast<Vrui::DraggingTool*>(cbData->tool);
 	if (tool != nullptr) {
@@ -425,7 +450,16 @@ int VrProteinApp::IndexOfMolecule(const std::string& moleculeName) const {
 
 /* Create and execute an application object: */
 int main(int argc, char* argv[]) {
-	signal(SIGSEGV, handler);	// Generate debug info on crash.
+	// Generate debug info on crash.
+	struct sigaction sigact;
+	sigact.sa_sigaction = crit_err_hdlr;
+	sigact.sa_flags = SA_RESTART | SA_SIGINFO;
+	if (sigaction(SIGSEGV, &sigact, (struct sigaction *) NULL) != 0) {
+		fprintf(stderr, "error setting signal handler for %d (%s)\n",
+		SIGSEGV, strsignal(SIGSEGV));
+		exit(EXIT_FAILURE);
+	}
+
 	try {
 		VrProtein::VrProteinApp app(argc, argv);
 		app.run();

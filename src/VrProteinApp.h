@@ -39,10 +39,15 @@ public:
 	virtual void display(GLContextData& contextData) const;
 	virtual void frame();
 
+	/* Methods: */
+	void centerDisplay();
+	void toggleSimulation(bool simulate, bool refreshUI = true);
+	void toggleForces(bool calculateForces, bool refreshUI = true);
+
 private:
 	friend class MoleculeDragger;
 
-	// Private fields
+	/* Fields: */
 	Simulator simulator;
 	DomainBox domainBox;
 	std::vector<std::unique_ptr<DrawMolecule>> drawMolecules;
@@ -53,7 +58,8 @@ private:
 	bool isSimulating;
 	bool isCalculatingForces;
 	Simulator::SimResult simResult;
-	// Private methods
+
+	/* Methods: */
 	std::unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
 	void SetDrawStyle(DrawStyle style);
 	int IndexOfMolecule(const std::string& moleculeName) const;
@@ -69,6 +75,8 @@ private:
 	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
 	GLMotif::PopupWindow* statisticsDialog; // The statistics dialog
 	HudWidget* hudWidget;
+	GLMotif::ToggleButton* simulateBtn;		// Toggle for isSimulating
+	GLMotif::ToggleButton* calculateForcesBtn; // Toggle for isCalculatingForces
 	GLMotif::TextField* heuristicTextField;	// Current value for heuristic
 	GLMotif::TextField* overlappingTextField;	// Current value for overlapping
 	// UI Constructors
@@ -76,14 +84,10 @@ private:
 	GLMotif::PopupWindow* createSettingsDialog(void);
 	GLMotif::PopupWindow* createStatisticsDialog(void);
 	// UI Callbacks
-	void centerDisplay();
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
 	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void simulateToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void calculateForcesToggleChangedCallback(
-			GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
 	// Tool Callbacks
 	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
 	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
