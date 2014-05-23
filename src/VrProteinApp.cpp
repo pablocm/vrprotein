@@ -21,22 +21,33 @@
 //#include <GL/GLModels.h>
 //#include <GL/GLMaterialTemplates.h>
 //#include <GL/GLTransformationWrappers.h>
-#include <GLMotif/StyleSheet.h>
-#include <GLMotif/WidgetManager.h>
-#include <GLMotif/RowColumn.h>
-#include <GLMotif/Menu.h>
-#include <GLMotif/Label.h>
 #include <GLMotif/Button.h>
+#include <GLMotif/Label.h>
+#include <GLMotif/Menu.h>
+#include <GLMotif/RowColumn.h>
 #include <Vrui/CoordinateManager.h>
-#include "VrProteinApp.h"
 #include "utils/backtrace.h"
-#include "PDBImporter.h"
-#include "Molecule.h"
+#include "VrProteinApp.h"
 #include "DrawMolecule.h"
 #include "HudWidget.h"
+#include "Molecule.h"
 #include "MoleculeDragger.h"
+#include "PDBImporter.h"
 
 using std::unique_ptr;
+
+using GLMotif::Button;
+using GLMotif::DropdownBox;
+using GLMotif::Label;
+using GLMotif::Menu;
+using GLMotif::PopupMenu;
+using GLMotif::PopupWindow;
+using GLMotif::RadioBox;
+using GLMotif::RowColumn;
+using GLMotif::TextField;
+using GLMotif::ToggleButton;
+
+using Misc::CallbackData;
 
 namespace VrProtein {
 
@@ -56,7 +67,7 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point(10, 0, 0)));
 
 	/* Set the navigation transformation to show the entire scene: */
-	centerDisplayCallback(nullptr);
+	centerDisplay();
 	/* Set the navigational coordinate system unit: */
 	Vrui::getCoordinateManager()->setUnit(Geometry::LinearUnit(Geometry::LinearUnit::ANGSTROM, 1));
 
@@ -148,76 +159,98 @@ void VrProteinApp::frame() {
  * UI methods:
  **************/
 
-GLMotif::PopupMenu* VrProteinApp::createMainMenu(void) {
-	auto mainMenuPopup = new GLMotif::PopupMenu("MainMenuPopup", Vrui::getWidgetManager());
+PopupMenu* VrProteinApp::createMainMenu(void) {
+	auto mainMenuPopup = new PopupMenu("MainMenuPopup", Vrui::getWidgetManager());
 	mainMenuPopup->setTitle("VR Protein App");
 
-	auto mainMenu = new GLMotif::Menu("MainMenu", mainMenuPopup, false);
+	auto mainMenu = new Menu("MainMenu", mainMenuPopup, false);
 
-	auto centerDisplayButton = new GLMotif::Button("CenterDisplayButton", mainMenu,
-			"Center Display");
-	centerDisplayButton->getSelectCallbacks().add(this, &VrProteinApp::centerDisplayCallback);
+	auto centerDisplayButton = new Button("CenterDisplayButton", mainMenu, "Center Display");
+	centerDisplayButton->getSelectCallbacks().add([](CallbackData* cbData, void* app) {
+		static_cast<VrProteinApp*>(app)->centerDisplay();
+	}, this);
 
-	showSettingsDialogToggle = new GLMotif::ToggleButton("ShowSettingsDialogToggle", mainMenu,
+	showSettingsDialogToggle = new ToggleButton("ShowSettingsDialogToggle", mainMenu,
 			"Show Settings Dialog");
-	showSettingsDialogToggle->getValueChangedCallbacks().add(this,
-			&VrProteinApp::showSettingsDialogCallback);
+	showSettingsDialogToggle->getValueChangedCallbacks().add([](CallbackData* cbData, void* app) {
+		auto _app = static_cast<VrProteinApp*>(app);
+		/* Hide or show settings dialog based on toggle button state: */
+		if (static_cast<ToggleButton::ValueChangedCallbackData*>(cbData)->set)
+			Vrui::popupPrimaryWidget(_app->settingsDialog);
+		else
+			Vrui::popdownPrimaryWidget(_app->settingsDialog);
+	}, this);
 
-	showStatisticsDialogToggle = new GLMotif::ToggleButton("ShowStatisticsDialogToggle", mainMenu,
+	showStatisticsDialogToggle = new ToggleButton("ShowStatisticsDialogToggle", mainMenu,
 			"Show Statistics");
-	showStatisticsDialogToggle->getValueChangedCallbacks().add(this,
-			&VrProteinApp::showStatisticsDialogCallback);
+	showStatisticsDialogToggle->getValueChangedCallbacks().add([](CallbackData* cbData, void* app) {
+		auto _app = static_cast<VrProteinApp*>(app);
+		/* Hide or show statistics dialog based on toggle button state: */
+		if (static_cast<ToggleButton::ValueChangedCallbackData*>(cbData)->set)
+			Vrui::popupPrimaryWidget(_app->statisticsDialog);
+		else
+			Vrui::popdownPrimaryWidget(_app->statisticsDialog);
+	}, this);
 
-	showHudWidgetToggle = new GLMotif::ToggleButton("ShowHudWidgetToggle", mainMenu, "Show HUD");
-	showHudWidgetToggle->getValueChangedCallbacks().add(this, &VrProteinApp::showHudWidgetCallback);
+	showHudWidgetToggle = new ToggleButton("ShowHudWidgetToggle", mainMenu, "Show HUD");
+	showHudWidgetToggle->getValueChangedCallbacks().add([](CallbackData* cbData, void* app) {
+		auto _app = static_cast<VrProteinApp*>(app);
+		/* Hide or show HUD dialog based on toggle button state: */
+		if (static_cast<ToggleButton::ValueChangedCallbackData*>(cbData)->set)
+			Vrui::popupPrimaryWidget(_app->statisticsDialog);
+		else
+			Vrui::popdownPrimaryWidget(_app->statisticsDialog);
+	}, this);
 
 	mainMenu->manageChild();
 
 	return mainMenuPopup;
 }
 
-GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void) {
-	settingsDialog = new GLMotif::PopupWindow("SettingsDialog", Vrui::getWidgetManager(),
-			"Settings Dialog");
+PopupWindow* VrProteinApp::createSettingsDialog(void) {
+	settingsDialog = new PopupWindow("SettingsDialog", Vrui::getWidgetManager(), "Settings Dialog");
 	settingsDialog->setCloseButton(true);
-	settingsDialog->getCloseCallbacks().add(this, &VrProteinApp::settingsDialogCloseCallback);
+	settingsDialog->getCloseCallbacks().add([](Misc::CallbackData* cbData, void* app) {
+		/* Unset toggle button on main menu */
+		static_cast<VrProteinApp*>(app)->showSettingsDialogToggle->setToggle(false);
+	}, this);
 
-	GLMotif::RowColumn* settings = new GLMotif::RowColumn("Settings", settingsDialog, false);
+	auto settings = new RowColumn("Settings", settingsDialog, false);
 
 	// Molecule selector dropdown
-	new GLMotif::Label("SelectedLabel", settings, "Selected molecule:");
+	new Label("SelectedLabel", settings, "Selected molecule:");
 	auto molItems = GetDropdownItemStrings();
-	moleculeSelector = new GLMotif::DropdownBox("moleculeSelector", settings, molItems, false);
+	moleculeSelector = new DropdownBox("moleculeSelector", settings, molItems, false);
 	moleculeSelector->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeSelectorChangedCallback);
 	moleculeSelector->manageChild();
 
 	// Molecule Picker radio box
-	new GLMotif::Label("LoadLabel", settings, "Load molecule:");
-	auto moleculeLoader = new GLMotif::RadioBox("MoleculeLoader", settings, false);
-	new GLMotif::ToggleButton("AlaninBtn", moleculeLoader, "alanin.pdb");
-	new GLMotif::ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
-	new GLMotif::ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
-	new GLMotif::ToggleButton("1STPBtn", moleculeLoader, "1STP.pdb");
-	new GLMotif::ToggleButton("1STP_BTNBtn", moleculeLoader, "1STP_BTN.pdb");
+	new Label("LoadLabel", settings, "Load molecule:");
+	auto moleculeLoader = new RadioBox("MoleculeLoader", settings, false);
+	new ToggleButton("AlaninBtn", moleculeLoader, "alanin.pdb");
+	new ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
+	new ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
+	new ToggleButton("1STPBtn", moleculeLoader, "1STP.pdb");
+	new ToggleButton("1STP_BTNBtn", moleculeLoader, "1STP_BTN.pdb");
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
-	moleculeLoader->setSelectionMode(GLMotif::RadioBox::ALWAYS_ONE);
+	moleculeLoader->setSelectionMode(RadioBox::ALWAYS_ONE);
 	moleculeLoader->setSelectedToggle(0); // Alanin default
 	moleculeLoader->manageChild();
 
 	// Style picker radio box
-	new GLMotif::Label("StyleLabel", settings, "Render style:");
-	auto stylePicker = new GLMotif::RadioBox("StylePicker", settings, false);
-	new GLMotif::ToggleButton("PointsBtn", stylePicker, "Points");
-	new GLMotif::ToggleButton("SurfBtn", stylePicker, "Surf");
+	new Label("StyleLabel", settings, "Render style:");
+	auto stylePicker = new RadioBox("StylePicker", settings, false);
+	new ToggleButton("PointsBtn", stylePicker, "Points");
+	new ToggleButton("SurfBtn", stylePicker, "Surf");
 	stylePicker->getValueChangedCallbacks().add(this, &VrProteinApp::stylePickerChangedCallback);
 	stylePicker->setSelectedToggle(1); // Surf default
-	stylePicker->setSelectionMode(GLMotif::RadioBox::ALWAYS_ONE);
+	stylePicker->setSelectionMode(RadioBox::ALWAYS_ONE);
 	stylePicker->manageChild();
 
 	// Use colors toggle
-	auto colorBtn = new GLMotif::ToggleButton("ColorBtn", settings, "Use colors");
+	auto colorBtn = new ToggleButton("ColorBtn", settings, "Use colors");
 	colorBtn->setToggle(true); // UseColor default
 	colorBtn->getValueChangedCallbacks().add(this, &VrProteinApp::colorToggleChangedCallback);
 
@@ -226,33 +259,35 @@ GLMotif::PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	return settingsDialog;
 }
 
-GLMotif::PopupWindow* VrProteinApp::createStatisticsDialog(void) {
-	statisticsDialog = new GLMotif::PopupWindow("StatisticsDialog", Vrui::getWidgetManager(),
+PopupWindow* VrProteinApp::createStatisticsDialog(void) {
+	statisticsDialog = new PopupWindow("StatisticsDialog", Vrui::getWidgetManager(),
 			"Simulation Statistics");
 	statisticsDialog->setCloseButton(true);
-	statisticsDialog->getCloseCallbacks().add(this, &VrProteinApp::statisticsDialogCloseCallback);
+	statisticsDialog->getCloseCallbacks().add([](Misc::CallbackData* cbData, void* app) {
+		/* Unset toggle button on main menu */
+		static_cast<VrProteinApp*>(app)->showStatisticsDialogToggle->setToggle(false);
+	}, this);
 
-	auto statistics = new GLMotif::RowColumn("Statistics", statisticsDialog, false);
+	auto statistics = new RowColumn("Statistics", statisticsDialog, false);
 	statistics->setNumMinorWidgets(3);
 
 	// Heuristic value
-	new GLMotif::Label("HeuristicLabel", statistics, "L-J potential:");
-	heuristicTextField = new GLMotif::TextField("HeuristicTextField", statistics, 12, true);
-	new GLMotif::Label("HeuristicUnitsLabel", statistics, "(J)");
+	new Label("HeuristicLabel", statistics, "L-J potential:");
+	heuristicTextField = new TextField("HeuristicTextField", statistics, 12, true);
+	new Label("HeuristicUnitsLabel", statistics, "(J)");
 
 	// Is Overlapping
-	new GLMotif::Label("overlappingLabel", statistics, "Max overlap:");
-	overlappingTextField = new GLMotif::TextField("overlappingTextField", statistics, 12, true);
-	new GLMotif::Label("HeuristicUnitsLabel", statistics, "(A)");
+	new Label("overlappingLabel", statistics, "Max overlap:");
+	overlappingTextField = new TextField("overlappingTextField", statistics, 12, true);
+	new Label("HeuristicUnitsLabel", statistics, "(A)");
 
 	// Do realtime statistics
-	auto simulateBtn = new GLMotif::ToggleButton("SimulateBtn", statistics, "Simulate");
+	auto simulateBtn = new ToggleButton("SimulateBtn", statistics, "Simulate");
 	simulateBtn->setToggle(isSimulating);
 	simulateBtn->getValueChangedCallbacks().add(this, &VrProteinApp::simulateToggleChangedCallback);
 
 	// Calculate forces
-	auto calculateForcesBtn = new GLMotif::ToggleButton("CalculateForcesBtn", statistics,
-			"Calc. forces");
+	auto calculateForcesBtn = new ToggleButton("CalculateForcesBtn", statistics, "Calc. forces");
 	calculateForcesBtn->setToggle(isCalculatingForces);
 	calculateForcesBtn->getValueChangedCallbacks().add(this,
 			&VrProteinApp::calculateForcesToggleChangedCallback);
@@ -272,70 +307,24 @@ std::vector<std::string> VrProteinApp::GetDropdownItemStrings() const {
 	return items;
 }
 
-/* Center display on currently loaded molecule */
-void VrProteinApp::centerDisplayCallback(Misc::CallbackData* cbData) {
+/* Center display on origin */
+void VrProteinApp::centerDisplay() {
 	std::cout << "Centering display." << std::endl;
 	Vrui::setNavigationTransformation(Point::origin, Scalar(40));
 }
 
-void VrProteinApp::showSettingsDialogCallback(
-		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
-	/* Hide or show settings dialog based on toggle button state: */
-	if (cbData->set) {
-		/* Pop up the settings dialog: */
-		Vrui::popupPrimaryWidget(settingsDialog);
-	}
-	else
-		Vrui::popdownPrimaryWidget(settingsDialog);
-}
-
-void VrProteinApp::showStatisticsDialogCallback(
-		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
-	/* Hide or show statistics dialog based on toggle button state: */
-	if (cbData->set) {
-		/* Pop up the statistics dialog: */
-		Vrui::popupPrimaryWidget(statisticsDialog);
-	}
-	else
-		Vrui::popdownPrimaryWidget(statisticsDialog);
-}
-
-void VrProteinApp::showHudWidgetCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
-	/* Hide or show HUD dialog based on toggle button state: */
-	if (cbData->set) {
-		/* Pop up the hud dialog: */
-		Vrui::popupPrimaryWidget(hudWidget);
-	}
-	else
-		Vrui::popdownPrimaryWidget(hudWidget);
-}
-
-void VrProteinApp::settingsDialogCloseCallback(Misc::CallbackData* cbData) {
-	showSettingsDialogToggle->setToggle(false);
-}
-
-void VrProteinApp::statisticsDialogCloseCallback(Misc::CallbackData* cbData) {
-	showStatisticsDialogToggle->setToggle(false);
-}
-
-/* Selected a new molecule */
-void VrProteinApp::moleculeSelectorChangedCallback(
-		GLMotif::DropdownBox::ValueChangedCallbackData* cbData) {
+/* Selected a molecule for editing in settings dialog */
+void VrProteinApp::moleculeSelectorChangedCallback(DropdownBox::ValueChangedCallbackData* cbData) {
 	selectedMoleculeIdx = cbData->newSelectedItem;
 }
 
 /* Load a new molecule */
-void VrProteinApp::moleculeLoaderChangedCallback(
-		GLMotif::RadioBox::ValueChangedCallbackData* cbData) {
+void VrProteinApp::moleculeLoaderChangedCallback(RadioBox::ValueChangedCallbackData* cbData) {
 	std::string name = cbData->newSelectedToggle->getString();
 	std::cout << "Selected " << name << " from picker." << std::endl;
 
 	drawMolecules[selectedMoleculeIdx] = LoadMolecule(name);
 	// update dropdown label
-	// TODO: ARREGLAR ESTO
-	//auto dropdownItem = const_cast<GLMotif::Button*>(static_cast<const GLMotif::Button*>
-	//						(moleculeSelector->getItemWidget(selectedMoleculeIdx)));
-	//dropdownItem->setString(name.c_str());
 	moleculeSelector->clearItems();
 	for (auto& str : GetDropdownItemStrings()) {
 		moleculeSelector->addItem(str.c_str());
@@ -348,7 +337,7 @@ void VrProteinApp::moleculeLoaderChangedCallback(
 }
 
 /* Toggle draw style */
-void VrProteinApp::stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData) {
+void VrProteinApp::stylePickerChangedCallback(RadioBox::ValueChangedCallbackData* cbData) {
 	std::string style = cbData->newSelectedToggle->getString();
 	std::cout << "Selected style " << style << " from picker." << std::endl;
 	if (style == "Points") {
@@ -365,21 +354,19 @@ void VrProteinApp::stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCal
 }
 
 /* Toggle use of color in molecules */
-void VrProteinApp::colorToggleChangedCallback(
-		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
+void VrProteinApp::colorToggleChangedCallback(ToggleButton::ValueChangedCallbackData* cbData) {
 	selectedUseColor = cbData->set;
 	drawMolecules[selectedMoleculeIdx]->SetColorStyle(cbData->set);
 }
 
 /* Toggle simulation of molecules */
-void VrProteinApp::simulateToggleChangedCallback(
-		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
+void VrProteinApp::simulateToggleChangedCallback(ToggleButton::ValueChangedCallbackData* cbData) {
 	isSimulating = cbData->set;
 }
 
 /* Toggle calculation of forces and torques */
 void VrProteinApp::calculateForcesToggleChangedCallback(
-		GLMotif::ToggleButton::ValueChangedCallbackData* cbData) {
+		ToggleButton::ValueChangedCallbackData* cbData) {
 	isCalculatingForces = cbData->set;
 }
 

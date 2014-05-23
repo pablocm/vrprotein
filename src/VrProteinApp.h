@@ -76,12 +76,7 @@ private:
 	GLMotif::PopupWindow* createSettingsDialog(void);
 	GLMotif::PopupWindow* createStatisticsDialog(void);
 	// UI Callbacks
-	void centerDisplayCallback(Misc::CallbackData* cbData);
-	void showSettingsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void showStatisticsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void showHudWidgetCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void settingsDialogCloseCallback(Misc::CallbackData* cbData);
-	void statisticsDialogCloseCallback(Misc::CallbackData* cbData);
+	void centerDisplay();
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
 	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
