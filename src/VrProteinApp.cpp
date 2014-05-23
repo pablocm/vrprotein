@@ -17,208 +17,28 @@
  59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  ***********************************************************************/
 
-#include <memory>
 #include <iostream>
 //#include <GL/GLModels.h>
 //#include <GL/GLMaterialTemplates.h>
 //#include <GL/GLTransformationWrappers.h>
 #include <GLMotif/StyleSheet.h>
 #include <GLMotif/WidgetManager.h>
-#include <GLMotif/PopupMenu.h>
-#include <GLMotif/PopupWindow.h>
 #include <GLMotif/RowColumn.h>
 #include <GLMotif/Menu.h>
 #include <GLMotif/Label.h>
 #include <GLMotif/Button.h>
-#include <GLMotif/ToggleButton.h>
-#include <GLMotif/RadioBox.h>
-#include <GLMotif/DropdownBox.h>
-#include <GLMotif/TextField.h>
-#include <Vrui/Vrui.h>
-#include <Vrui/Application.h>
-#include <Vrui/ToolManager.h>
-#include <Vrui/DraggingToolAdapter.h>
 #include <Vrui/CoordinateManager.h>
+#include "VrProteinApp.h"
 #include "utils/backtrace.h"
-#include "AffineSpace.h"
 #include "PDBImporter.h"
 #include "Molecule.h"
 #include "DrawMolecule.h"
-#include "DomainBox.h"
-#include "Simulator.h"
 #include "HudWidget.h"
+#include "MoleculeDragger.h"
 
-using namespace VrProtein;
 using std::unique_ptr;
 
-class VrProteinApp: public Vrui::Application {
-public:
-	VrProteinApp(int& argc, char**& argv);
-
-	/* Methods from Vrui::Application: */
-	virtual void display(GLContextData& contextData) const;
-	virtual void frame();
-
-private:
-	/* Embedded classes: */
-	class MoleculeDragger: public Vrui::DraggingToolAdapter { // Class to drag molecules
-	private:
-		VrProteinApp* application;
-		bool dragging;
-		int moleculeIdx;
-		ONTransform dragTransform;
-
-	public:
-		MoleculeDragger(Vrui::DraggingTool* sTool, VrProteinApp* sApplication);
-		virtual void dragStartCallback(Vrui::DraggingTool::DragStartCallbackData* cbData);
-		virtual void dragCallback(Vrui::DraggingTool::DragCallbackData* cbData);
-		virtual void dragEndCallback(Vrui::DraggingTool::DragEndCallbackData* cbData);
-		void Reset();	// halt dragging right away
-	};
-
-	friend class MoleculeDragger;
-
-	// Private fields
-	Simulator simulator;
-	DomainBox domainBox;
-	std::vector<unique_ptr<DrawMolecule>> drawMolecules;
-	DrawStyle selectedStyle;
-	bool selectedUseColor;
-	int selectedMoleculeIdx;
-	// statistics
-	bool isSimulating;
-	bool isCalculatingForces;
-	Simulator::SimResult simResult;
-	// Private methods
-	unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
-	void SetDrawStyle(DrawStyle style);
-	int IndexOfMolecule(const std::string& moleculeName) const;
-	std::vector<std::string> GetDropdownItemStrings() const;
-	// Tool items
-	std::vector<unique_ptr<MoleculeDragger>> moleculeDraggers;
-	// UI Items
-	GLMotif::PopupMenu* mainMenu; // The program's main menu
-	GLMotif::ToggleButton* showSettingsDialogToggle;
-	GLMotif::ToggleButton* showStatisticsDialogToggle;
-	GLMotif::ToggleButton* showHudWidgetToggle;
-	GLMotif::PopupWindow* settingsDialog; // The settings dialog
-	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
-	GLMotif::PopupWindow* statisticsDialog; // The statistics dialog
-	HudWidget* hudWidget;
-	GLMotif::TextField* heuristicTextField;	// Current value for heuristic
-	GLMotif::TextField* overlappingTextField;	// Current value for overlapping
-	// UI Constructors
-	GLMotif::PopupMenu* createMainMenu(void);
-	GLMotif::PopupWindow* createSettingsDialog(void);
-	GLMotif::PopupWindow* createStatisticsDialog(void);
-	// UI Callbacks
-	void centerDisplayCallback(Misc::CallbackData* cbData);
-	void showSettingsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void showStatisticsDialogCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void showHudWidgetCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void settingsDialogCloseCallback(Misc::CallbackData* cbData);
-	void statisticsDialogCloseCallback(Misc::CallbackData* cbData);
-	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
-	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
-	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
-	void colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void simulateToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	void calculateForcesToggleChangedCallback(
-			GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
-	// Tool Callbacks
-	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
-	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
-};
-
-/******************************
- Methods of class MoleculeDragger:
- ******************************/
-
-VrProteinApp::MoleculeDragger::MoleculeDragger(Vrui::DraggingTool* sTool,
-		VrProteinApp* sApplication) :
-			Vrui::DraggingToolAdapter(sTool),
-			application(sApplication),
-			dragging(false),
-			moleculeIdx(-1) {
-}
-
-void VrProteinApp::MoleculeDragger::dragStartCallback(
-		Vrui::DraggingTool::DragStartCallbackData* cbData) {
-	/* Find the picked atom: */
-	moleculeIdx = -1;
-	if (cbData->rayBased) {
-		std::cout << "Checking ray intersect" << std::endl;
-		for (unsigned int i = 0; i < application->drawMolecules.size(); i++) {
-			if (application->drawMolecules[i]->Intersects(cbData->ray)) {
-				moleculeIdx = i;
-				break;
-			}
-		}
-	}
-	else {
-		Point point = cbData->startTransformation.getOrigin();
-		std::cout << "Checking intersect at ";
-		std::cout << point[0] << ", " << point[1] << ", " << point[2] << std::endl;
-		for (unsigned int i = 0; i < application->drawMolecules.size(); i++) {
-			if (application->drawMolecules[i]->Intersects(point)) {
-				moleculeIdx = i;
-				break;
-			}
-		}
-	}
-
-	/* Try locking the atom: */
-	if (moleculeIdx >= 0) {
-		if (application->drawMolecules[moleculeIdx]->Lock()) {
-			std::cout << "Grabbed molecule." << std::endl;
-			dragging = true;
-
-			/* Calculate the initial transformation from the dragger to the dragged atom: */
-			dragTransform = ONTransform(cbData->startTransformation.getTranslation(),
-					cbData->startTransformation.getRotation());
-			dragTransform.doInvert();
-			dragTransform *= application->drawMolecules[moleculeIdx]->GetState();
-		}
-		else
-			std::cout << "Molecule is locked by another dragger." << std::endl;
-	}
-	else
-		std::cout << "Nothing to grab at this location." << std::endl;
-}
-
-void VrProteinApp::MoleculeDragger::dragCallback(Vrui::DraggingTool::DragCallbackData* cbData) {
-	if (dragging) {
-		/* Apply the dragging transformation to the dragged atom: */
-		ONTransform transform = ONTransform(cbData->currentTransformation.getTranslation(),
-				cbData->currentTransformation.getRotation());
-		transform *= dragTransform;
-		application->drawMolecules[moleculeIdx]->SetState(transform);
-	}
-}
-
-void VrProteinApp::MoleculeDragger::dragEndCallback(
-		Vrui::DraggingTool::DragEndCallbackData* cbData) {
-	if (dragging) {
-		std::cout << "Released molecule." << std::endl;
-		/* Release the previously dragged atom: */
-		application->drawMolecules[moleculeIdx]->Unlock();
-		moleculeIdx = -1;
-		dragging = false;
-	}
-}
-
-void VrProteinApp::MoleculeDragger::Reset() {
-	if (dragging) {
-		std::cout << "Dragger reset." << std::endl;
-		application->drawMolecules[moleculeIdx]->Unlock();
-		moleculeIdx = -1;
-		dragging = false;
-	}
-}
-
-/******************************
- Methods of class VrProteinApp:
- ******************************/
+namespace VrProtein {
 
 VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			Vrui::Application(argc, argv),
@@ -233,7 +53,7 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 
 	/* Move them away */
 	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
-	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point( 10, 0, 0)));
+	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point(10, 0, 0)));
 
 	/* Set the navigation transformation to show the entire scene: */
 	centerDisplayCallback(nullptr);
@@ -346,7 +166,7 @@ GLMotif::PopupMenu* VrProteinApp::createMainMenu(void) {
 	showStatisticsDialogToggle = new GLMotif::ToggleButton("ShowStatisticsDialogToggle", mainMenu,
 			"Show Statistics");
 	showStatisticsDialogToggle->getValueChangedCallbacks().add(this,
-				&VrProteinApp::showStatisticsDialogCallback);
+			&VrProteinApp::showStatisticsDialogCallback);
 
 	showHudWidgetToggle = new GLMotif::ToggleButton("ShowHudWidgetToggle", mainMenu, "Show HUD");
 	showHudWidgetToggle->getValueChangedCallbacks().add(this, &VrProteinApp::showHudWidgetCallback);
@@ -614,11 +434,13 @@ int VrProteinApp::IndexOfMolecule(const std::string& moleculeName) const {
 	throw new std::runtime_error("Molecule not found: " + moleculeName);
 }
 
+}
+
 /* Create and execute an application object: */
 int main(int argc, char* argv[]) {
 	signal(SIGSEGV, handler);	// Generate debug info on crash.
 	try {
-		VrProteinApp app(argc, argv);
+		VrProtein::VrProteinApp app(argc, argv);
 		app.run();
 	}
 	catch (std::runtime_error &err) {
