@@ -310,6 +310,8 @@ void DrawMolecule::ComputeSurf() {
 }
 
 unique_ptr<DrawMolecule::Color> DrawMolecule::AtomColor(char short_name) const {
+	/*
+	// Anaglyph-friendly coloring
 	switch (short_name) {
 	case 'H':
 		return unique_ptr<Color>(new Color(0.8f, 0.0f, 0.4f)); // rojo
@@ -321,6 +323,21 @@ unique_ptr<DrawMolecule::Color> DrawMolecule::AtomColor(char short_name) const {
 		return unique_ptr<Color>(new Color(0.5f, 0.3f, 0.8f)); // azul
 	}
 	return unique_ptr<Color>(new Color(0.9f, 0.9f, 0.9f)); // blanco
+	*/
+	// CPK coloring (http://en.wikipedia.org/wiki/CPK_coloring)
+	switch (short_name) {
+	case 'H':
+		return unique_ptr<Color>(new Color(0.95f, 0.95f, 0.95f)); // white
+	case 'C':
+		return unique_ptr<Color>(new Color(0.6f, 0.6f, 0.6f)); // gray
+	case 'N':
+		return unique_ptr<Color>(new Color(34/255.0f, 51/255.0f, 1)); // dark blue
+	case 'O':
+		return unique_ptr<Color>(new Color(0.94f, 0, 0)); // red
+	case 'S':
+		return unique_ptr<Color>(new Color(1, 200/255.0f, 50/255.0f)); // orange
+	}
+	return unique_ptr<Color>(new Color(221/255.0f, 119/255.0f, 1)); // pink
 }
 
 const Molecule& DrawMolecule::GetMolecule() const {
