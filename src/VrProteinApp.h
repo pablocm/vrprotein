@@ -39,12 +39,15 @@ public:
 	/* Methods from Vrui::Application: */
 	virtual void display(GLContextData& contextData) const;
 	virtual void frame();
+	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
+	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
 
 	/* Methods: */
 	void centerDisplay();
 	void toggleSimulation(bool simulate, bool refreshUI = true);
 	void toggleForces(bool calculateForces, bool refreshUI = true);
-	void setColorStyle(ColorStyle style, bool refreshUI = true);
+	void setColorStyle(ColorStyle newStyle, bool refreshUI = true);
+	void setDrawStyle(DrawStyle newStyle, bool refreshUI = true);
 
 private:
 	friend class MoleculeDragger;
@@ -63,7 +66,6 @@ private:
 
 	/* Methods: */
 	std::unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
-	void SetDrawStyle(DrawStyle style);
 	int IndexOfMolecule(const std::string& moleculeName) const;
 	std::vector<std::string> GetDropdownItemStrings() const;
 	// Tool items
@@ -75,6 +77,7 @@ private:
 	GLMotif::ToggleButton* showHudWidgetToggle;
 	GLMotif::PopupWindow* settingsDialog; // The settings dialog
 	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
+	GLMotif::RadioBox* stylePicker; // Radio box for draw style
 	GLMotif::RadioBox* colorStylePicker; // Radio box for color style
 	GLMotif::PopupWindow* statisticsDialog; // The statistics dialog
 	HudWidget* hudWidget;
@@ -89,10 +92,6 @@ private:
 	// UI Callbacks
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
 	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
-	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
-	// Tool Callbacks
-	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
-	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
 };
 
 }

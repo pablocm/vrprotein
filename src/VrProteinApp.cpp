@@ -246,20 +246,20 @@ PopupWindow* VrProteinApp::createSettingsDialog(void) {
 
 	// Style picker radio box
 	new Label("StyleLabel", settings, "Render style:");
-	auto stylePicker = new RadioBox("StylePicker", settings, false);
+	stylePicker = new RadioBox("StylePicker", settings, false);
 	new ToggleButton("PointsBtn", stylePicker, "Points");
 	new ToggleButton("SurfBtn", stylePicker, "Surf");
-	stylePicker->getValueChangedCallbacks().add(this, &VrProteinApp::stylePickerChangedCallback);
+	stylePicker->getValueChangedCallbacks().add([](Misc::CallbackData* cbData, void* app) {
+		auto _app = static_cast<VrProteinApp*>(app);
+		auto _cbData = static_cast<RadioBox::ValueChangedCallbackData*>(cbData);
+		auto idx = _app->stylePicker->getChildIndex(_cbData->newSelectedToggle);
+		_app->setDrawStyle(static_cast<DrawStyle>(idx + 1), false);
+	}, this);
 	stylePicker->setSelectedToggle(static_cast<int>(selectedStyle) - 1); // default
 	stylePicker->setSelectionMode(RadioBox::ALWAYS_ONE);
 	stylePicker->manageChild();
 
 	// Colors style picker
-	/*
-	auto colorBtn = new ToggleButton("ColorBtn", settings, "Color Style");
-	colorBtn->setToggle(true); // UseColor default
-	colorBtn->getValueChangedCallbacks().add(this, &VrProteinApp::colorToggleChangedCallback);
-	*/
 	new Label("ColorStyleLabel", settings, "Color style:");
 	colorStylePicker = new RadioBox("ColorStylePicker", settings, false);
 	new ToggleButton("NoneBtn", colorStylePicker, "None");
@@ -374,6 +374,15 @@ void VrProteinApp::setColorStyle(ColorStyle newStyle, bool refreshUI /* = true *
 	}
 }
 
+void VrProteinApp::setDrawStyle(DrawStyle newStyle, bool refreshUI /* = true */) {
+	std::cout << "Changing draw style to " << static_cast<int>(newStyle) << std::endl;
+	selectedStyle = newStyle;
+	drawMolecules[selectedMoleculeIdx]->SetDrawStyle(selectedStyle);
+	if (refreshUI) {
+		stylePicker->setSelectedToggle(static_cast<int>(newStyle));
+	}
+}
+
 /* Selected a molecule for editing in settings dialog */
 void VrProteinApp::moleculeSelectorChangedCallback(DropdownBox::ValueChangedCallbackData* cbData) {
 	selectedMoleculeIdx = cbData->newSelectedItem;
@@ -407,23 +416,6 @@ void VrProteinApp::moleculeLoaderChangedCallback(RadioBox::ValueChangedCallbackD
 	// reset all draggers, just in case
 	for (auto& d : moleculeDraggers)
 		d->Reset();
-}
-
-/* Toggle draw style */
-void VrProteinApp::stylePickerChangedCallback(RadioBox::ValueChangedCallbackData* cbData) {
-	std::string style = cbData->newSelectedToggle->getString();
-	std::cout << "Selected style " << style << " from picker." << std::endl;
-	if (style == "Points") {
-		selectedStyle = DrawStyle::Points;
-
-		drawMolecules[selectedMoleculeIdx]->SetDrawStyle(DrawStyle::Points);
-	}
-	else if (style == "Surf") {
-		selectedStyle = DrawStyle::Surf;
-		drawMolecules[selectedMoleculeIdx]->SetDrawStyle(DrawStyle::Surf);
-	}
-	else
-		throw std::runtime_error("Unknown style " + style);
 }
 
 void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {
