@@ -385,13 +385,13 @@ void VrProteinApp::stylePickerChangedCallback(RadioBox::ValueChangedCallbackData
 		drawMolecules[selectedMoleculeIdx]->SetDrawStyle(DrawStyle::Surf);
 	}
 	else
-		throw "Unknown style " + style;
+		throw std::runtime_error("Unknown style " + style);
 }
 
 /* Toggle use of color in molecules */
 void VrProteinApp::colorToggleChangedCallback(ToggleButton::ValueChangedCallbackData* cbData) {
 	selectedUseColor = cbData->set;
-	drawMolecules[selectedMoleculeIdx]->SetColorStyle(cbData->set);
+	drawMolecules[selectedMoleculeIdx]->SetColorStyle(cbData->set ? ColorStyle::CPK : ColorStyle::Pockets);
 }
 
 void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {
@@ -426,7 +426,7 @@ unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName)
 	auto drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
 
 	drawMolecule->SetDrawStyle(selectedStyle);
-	drawMolecule->SetColorStyle(selectedUseColor);
+	drawMolecule->SetColorStyle(selectedUseColor ? ColorStyle::CPK : ColorStyle::Pockets);
 
 	Point center;
 	if (drawMolecule) {
@@ -443,7 +443,7 @@ int VrProteinApp::IndexOfMolecule(const std::string& moleculeName) const {
 			return i;
 		}
 	}
-	throw new std::runtime_error("Molecule not found: " + moleculeName);
+	throw std::runtime_error("Molecule not found: " + moleculeName);
 }
 
 }

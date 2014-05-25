@@ -33,7 +33,7 @@ o/
 # Protein files
 *.pdb
 *.psf
-*.pdb.tri
+*.pdb.*
 
 # Misc
 OculusRiftCalibration.dat

@@ -9,6 +9,7 @@
 #define DRAWMOLECULE_H_
 
 #include <memory>
+#include <unordered_map>
 #include <GL/GLObject.h>
 #include <GL/GLColor.h>
 #include <GL/GLVertex.h>
@@ -22,6 +23,10 @@ namespace VrProtein {
 
 enum class DrawStyle {
 	None, Points, Surf
+};
+
+enum class ColorStyle {
+	None, AnaglyphFriendly, CPK, Pockets
 };
 
 class DrawMolecule: public GLObject {
@@ -40,7 +45,7 @@ public:
 
 		GLuint displayListId;  // The display List for the molecule
 		DrawStyle displayListDrawStyle;  // Selected style for current display list
-		bool displayListUseColor;  // Selected "useColor" for current display list
+		ColorStyle displayListColorStyle;  // Selected color style for current display list
 
 		/* Constructors and destructors: */
 		DataItem(void);
@@ -62,24 +67,28 @@ public:
 	virtual void initContext(GLContextData& contextData) const;
 	void glRenderAction(GLContextData& contextData) const;
 	void ComputeSurf();
+	void ComputePockets();
 	const Molecule& GetMolecule() const;
 	const Point& GetCenter();
 	std::string GetName() const;
 	void SetDrawStyle(DrawStyle style);
-	void SetColorStyle(bool useColor);
+	void SetColorStyle(ColorStyle useColor);
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<std::unique_ptr<Vertex>> vertices;
+	std::unordered_map<int, int> pockets;	// <Atom Serial, pocket ID>
 	Point position;
 	Rotation orientation;
 	bool surfComputed;
+	bool pocketsComputed;
 	DrawStyle style;
-	bool useColor;
+	ColorStyle colorStyle;
 	bool locked;	// currently locked by a dragger
 
 	void DrawPoints(GLContextData& contextData) const;
 	void DrawSurf(GLContextData& contextData) const;
-	std::unique_ptr<DrawMolecule::Color> AtomColor(char short_name) const;
+	DrawMolecule::Color AtomColor(char short_name) const;
+	DrawMolecule::Color AtomColor(int serial) const;
 };
 
 }
