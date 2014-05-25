@@ -56,7 +56,7 @@ namespace VrProtein {
 VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			Vrui::Application(argc, argv),
 			selectedStyle(DrawStyle::Surf),
-			selectedUseColor(true),
+			selectedColorStyle(ColorStyle::CPK),
 			selectedMoleculeIdx(0),
 			isSimulating(false),
 			isCalculatingForces(true) {
@@ -250,14 +250,31 @@ PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	new ToggleButton("PointsBtn", stylePicker, "Points");
 	new ToggleButton("SurfBtn", stylePicker, "Surf");
 	stylePicker->getValueChangedCallbacks().add(this, &VrProteinApp::stylePickerChangedCallback);
-	stylePicker->setSelectedToggle(1); // Surf default
+	stylePicker->setSelectedToggle(static_cast<int>(selectedStyle) - 1); // default
 	stylePicker->setSelectionMode(RadioBox::ALWAYS_ONE);
 	stylePicker->manageChild();
 
-	// Use colors toggle
-	auto colorBtn = new ToggleButton("ColorBtn", settings, "Use colors");
+	// Colors style picker
+	/*
+	auto colorBtn = new ToggleButton("ColorBtn", settings, "Color Style");
 	colorBtn->setToggle(true); // UseColor default
 	colorBtn->getValueChangedCallbacks().add(this, &VrProteinApp::colorToggleChangedCallback);
+	*/
+	new Label("ColorStyleLabel", settings, "Color style:");
+	colorStylePicker = new RadioBox("ColorStylePicker", settings, false);
+	new ToggleButton("NoneBtn", colorStylePicker, "None");
+	new ToggleButton("AnaglyphBtn", colorStylePicker, "Anaglyph");
+	new ToggleButton("CPKBtn", colorStylePicker, "CPK");
+	new ToggleButton("PocketsBtn", colorStylePicker, "Pockets");
+	colorStylePicker->getValueChangedCallbacks().add([](Misc::CallbackData* cbData, void* app) {
+		auto _app = static_cast<VrProteinApp*>(app);
+		auto _cbData = static_cast<RadioBox::ValueChangedCallbackData*>(cbData);
+		auto idx = _app->colorStylePicker->getChildIndex(_cbData->newSelectedToggle);
+		_app->setColorStyle(static_cast<ColorStyle>(idx), false);
+	}, this);
+	colorStylePicker->setSelectedToggle(static_cast<int>(selectedColorStyle)); // default
+	colorStylePicker->setSelectionMode(RadioBox::ALWAYS_ONE);
+	colorStylePicker->manageChild();
 
 	settings->manageChild();
 
@@ -348,9 +365,30 @@ void VrProteinApp::toggleForces(bool calculateForces, bool refreshUI /* = true *
 	}
 }
 
+void VrProteinApp::setColorStyle(ColorStyle newStyle, bool refreshUI /* = true */) {
+	std::cout << "Changing color style to " << static_cast<int>(newStyle) << std::endl;
+	selectedColorStyle = newStyle;
+	drawMolecules[selectedMoleculeIdx]->SetColorStyle(selectedColorStyle);
+	if (refreshUI) {
+		colorStylePicker->setSelectedToggle(static_cast<int>(newStyle));
+	}
+}
+
 /* Selected a molecule for editing in settings dialog */
 void VrProteinApp::moleculeSelectorChangedCallback(DropdownBox::ValueChangedCallbackData* cbData) {
 	selectedMoleculeIdx = cbData->newSelectedItem;
+
+	// refresh UI
+	selectedStyle = drawMolecules[selectedMoleculeIdx]->GetDrawStyle();
+	selectedColorStyle = drawMolecules[selectedMoleculeIdx]->GetColorStyle();
+	// moleculeLoader
+	// TODO
+	// stylePicker
+	// TODO Improve
+	auto sp = dynamic_cast<RadioBox*>(settingsDialog->findDescendant("Settings/StylePicker"));
+	sp->setSelectedToggle(static_cast<int>(selectedStyle) - 1);
+	// colorStylePicker
+	colorStylePicker->setSelectedToggle(static_cast<int>(selectedColorStyle));
 }
 
 /* Load a new molecule */
@@ -388,12 +426,6 @@ void VrProteinApp::stylePickerChangedCallback(RadioBox::ValueChangedCallbackData
 		throw std::runtime_error("Unknown style " + style);
 }
 
-/* Toggle use of color in molecules */
-void VrProteinApp::colorToggleChangedCallback(ToggleButton::ValueChangedCallbackData* cbData) {
-	selectedUseColor = cbData->set;
-	drawMolecules[selectedMoleculeIdx]->SetColorStyle(cbData->set ? ColorStyle::CPK : ColorStyle::Pockets);
-}
-
 void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {
 	Application::toolCreationCallback(cbData);
 	/* Check if the new tool is a dragging tool: */
@@ -426,7 +458,7 @@ unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName)
 	auto drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
 
 	drawMolecule->SetDrawStyle(selectedStyle);
-	drawMolecule->SetColorStyle(selectedUseColor ? ColorStyle::CPK : ColorStyle::Pockets);
+	drawMolecule->SetColorStyle(selectedColorStyle);
 
 	Point center;
 	if (drawMolecule) {

@@ -22,11 +22,11 @@ class GLContextData;
 namespace VrProtein {
 
 enum class DrawStyle {
-	None, Points, Surf
+	None = 0, Points, Surf
 };
 
 enum class ColorStyle {
-	None, AnaglyphFriendly, CPK, Pockets
+	None = 0, AnaglyphFriendly, CPK, Pockets
 };
 
 class DrawMolecule: public GLObject {
@@ -71,7 +71,9 @@ public:
 	const Molecule& GetMolecule() const;
 	const Point& GetCenter();
 	std::string GetName() const;
+	DrawStyle GetDrawStyle() const;
 	void SetDrawStyle(DrawStyle style);
+	ColorStyle GetColorStyle() const;
 	void SetColorStyle(ColorStyle useColor);
 private:
 	std::unique_ptr<Molecule> molecule;

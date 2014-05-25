@@ -417,11 +417,19 @@ std::string DrawMolecule::GetName() const {
 	return molecule->source_filename;
 }
 
+ColorStyle DrawMolecule::GetColorStyle() const {
+	return colorStyle;
+}
+
 void DrawMolecule::SetColorStyle(ColorStyle colorStyle) {
 	this->colorStyle = colorStyle;
 	if (colorStyle == ColorStyle::Pockets) {
 		ComputePockets();
 	}
+}
+
+DrawStyle DrawMolecule::GetDrawStyle() const {
+	return style;
 }
 
 void DrawMolecule::SetDrawStyle(DrawStyle style) {

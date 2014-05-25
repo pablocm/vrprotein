@@ -23,6 +23,7 @@
 
 /* Forward declarations: */
 namespace VrProtein {
+enum class ColorStyle;
 class DrawMolecule;
 enum class DrawStyle;
 class HudWidget;
@@ -43,6 +44,7 @@ public:
 	void centerDisplay();
 	void toggleSimulation(bool simulate, bool refreshUI = true);
 	void toggleForces(bool calculateForces, bool refreshUI = true);
+	void setColorStyle(ColorStyle style, bool refreshUI = true);
 
 private:
 	friend class MoleculeDragger;
@@ -52,7 +54,7 @@ private:
 	DomainBox domainBox;
 	std::vector<std::unique_ptr<DrawMolecule>> drawMolecules;
 	DrawStyle selectedStyle;
-	bool selectedUseColor;
+	ColorStyle selectedColorStyle;
 	int selectedMoleculeIdx;
 	// statistics
 	bool isSimulating;
@@ -73,6 +75,7 @@ private:
 	GLMotif::ToggleButton* showHudWidgetToggle;
 	GLMotif::PopupWindow* settingsDialog; // The settings dialog
 	GLMotif::DropdownBox* moleculeSelector;	// dropdown for molecule selector
+	GLMotif::RadioBox* colorStylePicker; // Radio box for color style
 	GLMotif::PopupWindow* statisticsDialog; // The statistics dialog
 	HudWidget* hudWidget;
 	GLMotif::ToggleButton* simulateBtn;		// Toggle for isSimulating
@@ -87,7 +90,6 @@ private:
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
 	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
 	void stylePickerChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
-	void colorToggleChangedCallback(GLMotif::ToggleButton::ValueChangedCallbackData* cbData);
 	// Tool Callbacks
 	virtual void toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData);
 	virtual void toolDestructionCallback(Vrui::ToolManager::ToolDestructionCallbackData* cbData);
