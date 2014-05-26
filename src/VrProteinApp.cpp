@@ -149,8 +149,11 @@ void VrProteinApp::frame() {
 		simResult = simulator.step(*drawMolecules[0], *drawMolecules[1], isCalculatingForces);
 
 		// Apply force to molecule
-		if (isCalculatingForces && simResult.energy != 0) {
-			drawMolecules[0]->Step(simResult.netForce, simResult.netTorque, timeStep);
+		if (isCalculatingForces) {
+			if (simResult.energy != 0)
+				drawMolecules[0]->Step(simResult.netForce, simResult.netTorque, timeStep);
+			else
+				drawMolecules[0]->ResetForces();
 		}
 
 		// Draw statistics
@@ -239,10 +242,16 @@ PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	new Label("LoadLabel", settings, "Load molecule:");
 	auto moleculeLoader = new RadioBox("MoleculeLoader", settings, false);
 	new ToggleButton("AlaninBtn", moleculeLoader, "alanin.pdb");
-	new ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
-	new ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
+	//new ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
+	//new ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
 	new ToggleButton("1STPBtn", moleculeLoader, "1STP.pdb");
 	new ToggleButton("1STP_BTNBtn", moleculeLoader, "1STP_BTN.pdb");
+	new ToggleButton("1BU4Btn", moleculeLoader, "1BU4.pdb");
+	new ToggleButton("1BU4_2GPBtn", moleculeLoader, "1BU4_2GP.pdb");
+	//new ToggleButton("1MFABtn", moleculeLoader, "1MFA.pdb");
+	//new ToggleButton("1MFA_ABEBtn", moleculeLoader, "1MFA_ABE.pdb");
+	new ToggleButton("3VGCBtn", moleculeLoader, "3VGC.pdb");
+	new ToggleButton("3VGC_SRBBtn", moleculeLoader, "3VGC_SRB.pdb");
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
 	moleculeLoader->setSelectionMode(RadioBox::ALWAYS_ONE);

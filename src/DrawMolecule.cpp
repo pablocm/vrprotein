@@ -177,7 +177,7 @@ void DrawMolecule::Step(const Vector& netForce, const Vector& netTorque, Scalar 
 }
 
 void DrawMolecule::ResetForces() {
-	std::cout << "Reset forces" << std::endl;
+	//std::cout << "Reset forces" << std::endl;
 	velocity = Vector::zero;
 	angularVelocity = Vector::zero;
 }
@@ -439,8 +439,20 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 
 	auto it = pockets.find(serial);
 	if (it != pockets.end()) {
-		//TODO: Different colors for pockets
-		return Color(221/255.0f, 119/255.0f, 1); // pink
+		switch(it->second) {
+		case 1:
+			return Color(0.0f, 0.0f, 1.0f);
+		case 2:
+			return Color(0.0f, 1.0f, 0.0f);
+		case 3:
+			return Color(0.0f, 1.0f, 1.0f);
+		case 4:
+			return Color(1.0f, 0.0f, 0.0f);
+		case 5:
+			return Color(1.0f, 0.0f, 1.0f);
+		}
+		//return Color(221/255.0f, 119/255.0f, 1); // pink
+		return Color(0.7f, 0.7f, 0.7f);
 	}
 	// default
 	return Color(0.9f, 0.9f, 0.9f); // white
