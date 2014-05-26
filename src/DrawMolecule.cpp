@@ -68,6 +68,7 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	pocketsComputed = false;
 	colorStyle = ColorStyle::CPK;
 	locked = false;
+	velocity = Vector::zero;
 	position = Point::origin;
 	orientation = Rotation::identity;
 }
@@ -135,10 +136,50 @@ ONTransform DrawMolecule::GetState() const {
 void DrawMolecule::SetState(const ONTransform& newState) {
 	position = newState.getOrigin();
 	orientation = newState.getRotation();
+	velocity = Vector::zero;
+	angularVelocity = Vector::zero;
 }
 
 const Point& DrawMolecule::GetPosition() const {
 	return position;
+}
+
+void DrawMolecule::Step(const Vector& netForce, const Vector& netTorque, Scalar timeStep) {
+	const Scalar mass = 1;
+	const Scalar inertia = 1;
+	Scalar t2 = timeStep * timeStep;
+
+	Vector linearAccel = netForce / mass;
+	Vector angularAccel = netTorque * (mass / inertia);
+
+	// Clamp accelerations
+	Scalar max = linearAccel.max();
+	if (max > 100) {
+		linearAccel *= 100 / max;
+	}
+	max = angularAccel.max();
+	if (max > 100) {
+		angularAccel *= 100 / max;
+	}
+
+	// Update linear
+	position += velocity * timeStep + linearAccel * t2 * 0.5;
+	velocity += linearAccel * timeStep;
+
+	// Update angular
+	orientation.leftMultiply(Rotation(angularVelocity * timeStep + angularAccel * t2 * 0.5));
+	angularVelocity += angularAccel * t2;
+
+	// Clamp position inside domain box
+	for(int i = 0; i < 3; i++) {
+		position[i] = Math::clamp(position[i], Scalar(-40), Scalar(40));
+	}
+}
+
+void DrawMolecule::ResetForces() {
+	std::cout << "Reset forces" << std::endl;
+	velocity = Vector::zero;
+	angularVelocity = Vector::zero;
 }
 
 void DrawMolecule::initContext(GLContextData& contextData) const {

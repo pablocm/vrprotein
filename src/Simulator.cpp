@@ -44,7 +44,7 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 			Scalar energy = -1 * (rm6_r6*rm6_r6 - 2*rm6_r6);
 			result.energy += energy;
 
-			if (calcForces) {
+			if (calcForces && energy != 0) {
 				if (ligAtomPos != ligPos) { // Torque & force
 					Vector r = ligAtomPos - ligPos; // position relative to center of mass
 					Vector r_norm = r.normalize();

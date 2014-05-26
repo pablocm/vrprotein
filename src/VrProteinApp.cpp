@@ -85,6 +85,9 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 
 	/* Tell Vrui to run in a continuous frame sequence: */
 	Vrui::updateContinuously();
+
+	/* Initialize the frame time calculator: */
+	lastFrameTime = Vrui::getApplicationTime();
 }
 
 void VrProteinApp::display(GLContextData& contextData) const {
@@ -135,6 +138,11 @@ void VrProteinApp::display(GLContextData& contextData) const {
 }
 
 void VrProteinApp::frame() {
+	/* Calculate the current time step: */
+	double newFrameTime = Vrui::getApplicationTime();
+	Scalar timeStep = Scalar(newFrameTime - lastFrameTime);
+	lastFrameTime = newFrameTime;
+
 	if (isSimulating) {
 		// Calculate stuff
 		auto overlappingAmount = drawMolecules[0]->Intersects(*drawMolecules[1]);
@@ -142,10 +150,7 @@ void VrProteinApp::frame() {
 
 		// Apply force to molecule
 		if (isCalculatingForces && simResult.energy != 0) {
-			auto t = drawMolecules[0]->GetState();
-			auto t2 = ONTransform(simResult.netForce.normalize() * 0.04,
-					Rotation(simResult.netTorque, 0.008));
-			drawMolecules[0]->SetState(t * t2);
+			drawMolecules[0]->Step(simResult.netForce, simResult.netTorque, timeStep);
 		}
 
 		// Draw statistics
@@ -358,8 +363,10 @@ void VrProteinApp::toggleForces(bool calculateForces, bool refreshUI /* = true *
 	std::cout << "Toggling force calc. to " << calculateForces << std::endl;
 	isCalculatingForces = calculateForces;
 	// Turn on simulation if it was disabled
-	if (calculateForces)
+	if (calculateForces && !isSimulating)
 		toggleSimulation(true);
+	if (!calculateForces)
+		drawMolecules[0]->ResetForces();
 	if (refreshUI) {
 		calculateForcesBtn->setToggle(calculateForces);
 	}

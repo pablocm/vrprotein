@@ -63,6 +63,8 @@ public:
 	ONTransform GetState() const;	// Returns position and orientation of molecule
 	void SetState(const ONTransform& newState); // Sets state of molecule. Atom must be locked by caller.
 	const Point& GetPosition() const;
+	void Step(const Vector& netForce, const Vector& netTorque, Scalar timeStep);
+	void ResetForces();
 
 	virtual void initContext(GLContextData& contextData) const;
 	void glRenderAction(GLContextData& contextData) const;
@@ -81,6 +83,8 @@ private:
 	std::unordered_map<int, int> pockets;	// <Atom Serial, pocket ID>
 	Point position;
 	Rotation orientation;
+	Vector velocity;
+	Vector angularVelocity;
 	bool surfComputed;
 	bool pocketsComputed;
 	DrawStyle style;

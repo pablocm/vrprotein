@@ -53,6 +53,7 @@ private:
 	friend class MoleculeDragger;
 
 	/* Fields: */
+	double lastFrameTime;
 	Simulator simulator;
 	DomainBox domainBox;
 	std::vector<std::unique_ptr<DrawMolecule>> drawMolecules;
