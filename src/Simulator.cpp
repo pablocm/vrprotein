@@ -12,7 +12,6 @@
 namespace VrProtein {
 
 Simulator::Simulator() {
-	// TODO Auto-generated constructor stub
 }
 
 Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolecule& receptor,
@@ -21,6 +20,9 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 	ONTransform ligTransform = ligand.GetState();
 	ONTransform recTransform = receptor.GetState();
 	Point ligPos = ligand.GetPosition();
+
+	// Find closest pocket (if receptor has any)
+
 
 	for(const auto& ligAtom : ligand.GetMolecule().GetAtoms()) {
 		Point ligAtomPos = ligTransform.transform(ligAtom->position);

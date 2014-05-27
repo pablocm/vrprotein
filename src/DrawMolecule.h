@@ -80,7 +80,9 @@ public:
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<std::unique_ptr<Vertex>> vertices;
-	std::unordered_map<int, int> pockets;	// <Atom Serial, pocket ID>
+	std::unordered_map<int, int> atomToPocket;					// <Atom Serial, pocket ID>
+	std::unordered_map<int, std::vector<int>> pocketToAtoms;	// <pocket ID, atom serials list>
+	std::unordered_map<int, Point> pocketCentroids;				// <pocket ID, centroid>
 	Point position;
 	Rotation orientation;
 	Vector velocity;

@@ -5,6 +5,7 @@
  *      Author: pablocm
  */
 
+#include <algorithm>
 #include "Molecule.h"
 
 using namespace std;
@@ -25,6 +26,20 @@ const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
 	// http://stackoverflow.com/questions/1563124/c-vector-class-as-a-member-in-other-class
 	// http://stackoverflow.com/questions/3777525/returning-a-unique-ptr-from-a-class-method-c0x
 	return atoms;
+}
+
+const unique_ptr<MolAtom>& Molecule::FindBySerial(int serial) const {
+	auto it = std::lower_bound(atoms.begin(), atoms.end(), serial,
+			[](const unique_ptr<MolAtom>& a, const int serial) {
+				return a->serial < serial;
+			});
+
+	const unique_ptr<MolAtom>& result = (it != atoms.end()) ? *it : atoms[0];
+
+	// DEBUG
+	if (result->serial != serial)
+		throw std::runtime_error("FindBySerial failed.");
+	return result;
 }
 
 const Point& Molecule::GetCenter() {

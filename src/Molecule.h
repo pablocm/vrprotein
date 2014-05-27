@@ -21,6 +21,7 @@ public:
 	Molecule();
 	void AddAtom(std::unique_ptr<MolAtom> &atom);
 	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
+	const std::unique_ptr<MolAtom>& FindBySerial(int serial) const;
 	const Point& GetCenter();
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;

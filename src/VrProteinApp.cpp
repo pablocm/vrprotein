@@ -159,12 +159,14 @@ void VrProteinApp::frame() {
 		// Draw statistics
 		heuristicTextField->setValue(simResult.energy); //simResult.netForce.mag()); //
 		overlappingTextField->setValue(overlappingAmount);
-		hudWidget->setValue(simResult.energy); //simResult.netForce.mag()); //
+		meanDistanceTextField->setValue(42);	//TODO
 
+		hudWidget->setValue(simResult.energy); //simResult.netForce.mag()); //
 	}
 	else {
 		heuristicTextField->setString("---");
 		overlappingTextField->setString("---");
+		meanDistanceTextField->setString("---");
 	}
 }
 
@@ -252,6 +254,8 @@ PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	//new ToggleButton("1MFA_ABEBtn", moleculeLoader, "1MFA_ABE.pdb");
 	new ToggleButton("3VGCBtn", moleculeLoader, "3VGC.pdb");
 	new ToggleButton("3VGC_SRBBtn", moleculeLoader, "3VGC_SRB.pdb");
+	new ToggleButton("1XIGBtn", moleculeLoader, "1XIG.pdb");
+	new ToggleButton("1XIG_XYLBtn", moleculeLoader, "1XIG_XYL.pdb");
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
 	moleculeLoader->setSelectionMode(RadioBox::ALWAYS_ONE);
@@ -310,12 +314,17 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 	// Heuristic value
 	new Label("HeuristicLabel", statistics, "L-J potential:");
 	heuristicTextField = new TextField("HeuristicTextField", statistics, 12, true);
-	new Label("HeuristicUnitsLabel", statistics, "(J)");
+	new Label("HeuristicUnitsLabel1", statistics, "(J)");
 
 	// Is Overlapping
 	new Label("overlappingLabel", statistics, "Max overlap:");
 	overlappingTextField = new TextField("overlappingTextField", statistics, 12, true);
-	new Label("HeuristicUnitsLabel", statistics, "(A)");
+	new Label("HeuristicUnitsLabel2", statistics, "(A)");
+
+	// Mean distance
+	new Label("meanDistanceLabel", statistics, "Mean distance:");
+	meanDistanceTextField = new TextField("MeanDistanceTextField", statistics, 12, true);
+	new Label("HeuristicUnitsLabel3", statistics, "(A)");
 
 	// Do realtime statistics
 	simulateBtn = new ToggleButton("SimulateBtn", statistics, "Simulate");

@@ -102,6 +102,7 @@ bool DrawMolecule::Intersects(const Point& p) const {
 }
 
 Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
+	Scalar intersectionAmount2 = 0;
 	Scalar intersectionAmount = 0;
 	auto transform = GetState();
 	auto otherTransform = other.GetState();
@@ -112,8 +113,10 @@ Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
 			auto otherPosition = otherTransform.transform(otherAtom->position);
 			auto dist2 = Geometry::sqrDist(position, otherPosition);
 			auto mindist2 = Math::sqr(atom->radius + otherAtom->radius);
-			if (dist2 <= mindist2 && mindist2 - dist2 > intersectionAmount)
-				intersectionAmount = mindist2 - dist2;
+			if (mindist2 - dist2 > intersectionAmount2) { // TODO: Check math
+				intersectionAmount2 = mindist2 - dist2;
+				intersectionAmount = Math::sqrt(mindist2) - Math::sqrt(dist2);
+			}
 		}
 	}
 	return intersectionAmount;
@@ -186,35 +189,6 @@ void DrawMolecule::initContext(GLContextData& contextData) const {
 	/* Create a context data item and store it in the GLContextData object: */
 	DataItem* dataItem = new DataItem;
 	contextData.addDataItem(this, dataItem);
-
-	if (dataItem->hasVertexBufferObjectExtension) {
-		/* Upload the (mostly invariant) index buffer data for all crystal faces: */
-		/*
-		for (int faceIndex = 0; faceIndex < 6; ++faceIndex) {
-			glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
-					dataItem->faceIndexBufferObjectIDs[faceIndex]);
-
-			//glBufferDataARB(GLenum target, GLsizeiptrARB size, const GLvoid* data, GLenum usage)
-			glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
-					numVertices[faceIndex][0] * 2 * (numVertices[faceIndex][1] - 1) * sizeof(GLuint),
-							indices[faceIndex],
-							GL_STATIC_DRAW_ARB);
-		}
-		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
-		*/
-
-		/*
-		auto that = const_cast<DrawMolecule*>(this);
-		that->ComputeSurf();
-
-		glBegin(GL_TRIANGLES);
-		for (auto& v : vertices) {
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, v->color);
-			glVertex(*v);
-		}
-		glEnd();
-		*/
-	}
 }
 
 void DrawMolecule::glRenderAction(GLContextData& contextData) const {
@@ -383,12 +357,24 @@ void DrawMolecule::ComputePockets() {
 			if (line.substr(0, 5) == "ATOM ") {
 				int atomSerial = stoi(line.substr(6, 5));
 				int pocketId = stoi(line.substr(70, 2));
-				pockets[atomSerial] = pocketId;
+				// add to dictionaries
+				atomToPocket[atomSerial] = pocketId;
+				pocketToAtoms[pocketId].push_back(atomSerial);
 			}
 		}
 		infile.close();
 
-		cout << "Pockets computed. Loaded " << pockets.size() << " pocket atoms." << endl;
+		// Calculate centroids of pockets
+		for(const auto& it : pocketToAtoms) {
+			auto centroid = Vector::zero;
+			for(auto atomSerial : it.second) {
+				centroid += (molecule->FindBySerial(atomSerial)->position - Point::origin);
+			}
+			centroid /= it.second.size();
+			pocketCentroids[it.first] = Point(centroid);
+		}
+
+		cout << "Pockets computed. Loaded " << pocketToAtoms.size() << " pockets." << endl;
 	}
 	else {
 		cout << "not found." << endl;
@@ -437,8 +423,8 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 	if (colorStyle != ColorStyle::Pockets)
 		throw std::runtime_error("Bad call to DrawMolecule::AtomColor");
 
-	auto it = pockets.find(serial);
-	if (it != pockets.end()) {
+	auto it = atomToPocket.find(serial);
+	if (it != atomToPocket.end()) {
 		switch(it->second) {
 		case 1:
 			return Color(0.0f, 0.0f, 1.0f);
