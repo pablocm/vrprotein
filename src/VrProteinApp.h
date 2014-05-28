@@ -86,7 +86,8 @@ private:
 	GLMotif::ToggleButton* calculateForcesBtn; // Toggle for isCalculatingForces
 	GLMotif::TextField* heuristicTextField;	// Current value for heuristic
 	GLMotif::TextField* overlappingTextField;	// Current value for overlapping
-	GLMotif::TextField* meanDistanceTextField;	// Current value for mean distance
+	GLMotif::TextField* closestPocketTextField; // Current value for closest pocket
+	GLMotif::TextField* meanDistanceTextField;	// Current value for mean distance to pocket
 	// UI Constructors
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createSettingsDialog(void);

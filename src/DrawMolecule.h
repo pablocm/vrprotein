@@ -62,7 +62,6 @@ public:
 	void Unlock();
 	ONTransform GetState() const;	// Returns position and orientation of molecule
 	void SetState(const ONTransform& newState); // Sets state of molecule. Atom must be locked by caller.
-	const Point& GetPosition() const;
 	void Step(const Vector& netForce, const Vector& netTorque, Scalar timeStep);
 	void ResetForces();
 
@@ -72,16 +71,20 @@ public:
 	void ComputePockets();
 	const Molecule& GetMolecule() const;
 	const Point& GetCenter();
+	const Point& GetCenter() const;
 	std::string GetName() const;
 	DrawStyle GetDrawStyle() const;
 	void SetDrawStyle(DrawStyle style);
 	ColorStyle GetColorStyle() const;
 	void SetColorStyle(ColorStyle useColor);
+	const std::unordered_map<int, Point>& GetPocketCentroids() const;
+	const std::vector<Sphere>& GetSpheresOfPocket(int pocket) const;
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<std::unique_ptr<Vertex>> vertices;
 	std::unordered_map<int, int> atomToPocket;					// <Atom Serial, pocket ID>
 	std::unordered_map<int, std::vector<int>> pocketToAtoms;	// <pocket ID, atom serials list>
+	std::unordered_map<int, std::vector<Sphere>> pocketToSpheres;//<pocket ID, Sphere>
 	std::unordered_map<int, Point> pocketCentroids;				// <pocket ID, centroid>
 	Point position;
 	Rotation orientation;

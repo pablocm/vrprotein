@@ -19,9 +19,33 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 	auto result = SimResult();
 	ONTransform ligTransform = ligand.GetState();
 	ONTransform recTransform = receptor.GetState();
-	Point ligPos = ligand.GetPosition();
+	Point ligPos = ligTransform.transform(ligand.GetCenter());
 
-	// Find closest pocket (if receptor has any)
+	// Find closest pocket to ligand (if receptor has any)
+	result.closestPocket = -1;
+	Scalar closestPocketDist2 = 999; // max valid distance^2
+	for (const auto& it : receptor.GetPocketCentroids()) {
+		auto d2 = (ligPos - recTransform.transform(it.second)).sqr();
+		if (d2 < closestPocketDist2) {
+			closestPocketDist2 = d2;
+			result.closestPocket = it.first;
+		}
+	}
+	// Calculate mean pocket distance
+	if (result.closestPocket != -1) {
+		auto pocketSpheres = receptor.GetSpheresOfPocket(result.closestPocket);
+		for (const auto& ligAtom : ligand.GetMolecule().GetAtoms()) {
+			// find closest sphere
+			Scalar minDist2 = 999;
+			for (const auto& sphere : pocketSpheres) {
+				auto d2 = (ligTransform.transform(ligAtom->position) - recTransform.transform(sphere.getCenter())).sqr();
+				if (d2 < minDist2)
+					minDist2 = d2;
+			}
+			result.meanPocketDist += minDist2;
+		}
+		result.meanPocketDist = Math::sqrt(result.meanPocketDist) / pocketSpheres.size();
+	}
 
 
 	for(const auto& ligAtom : ligand.GetMolecule().GetAtoms()) {

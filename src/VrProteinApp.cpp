@@ -157,15 +157,17 @@ void VrProteinApp::frame() {
 		}
 
 		// Draw statistics
-		heuristicTextField->setValue(simResult.energy); //simResult.netForce.mag()); //
+		heuristicTextField->setValue(simResult.energy);
 		overlappingTextField->setValue(overlappingAmount);
-		meanDistanceTextField->setValue(42);	//TODO
+		closestPocketTextField->setValue(simResult.closestPocket);
+		meanDistanceTextField->setValue(simResult.meanPocketDist);
 
-		hudWidget->setValue(simResult.energy); //simResult.netForce.mag()); //
+		hudWidget->setValue(simResult.energy);
 	}
 	else {
 		heuristicTextField->setString("---");
 		overlappingTextField->setString("---");
+		closestPocketTextField->setString("---");
 		meanDistanceTextField->setString("---");
 	}
 }
@@ -256,6 +258,7 @@ PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	new ToggleButton("3VGC_SRBBtn", moleculeLoader, "3VGC_SRB.pdb");
 	new ToggleButton("1XIGBtn", moleculeLoader, "1XIG.pdb");
 	new ToggleButton("1XIG_XYLBtn", moleculeLoader, "1XIG_XYL.pdb");
+	new ToggleButton("test_1Btn", moleculeLoader, "test_1.pdb");
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
 	moleculeLoader->setSelectionMode(RadioBox::ALWAYS_ONE);
@@ -317,12 +320,17 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 	new Label("HeuristicUnitsLabel1", statistics, "(J)");
 
 	// Is Overlapping
-	new Label("overlappingLabel", statistics, "Max overlap:");
+	new Label("OverlappingLabel", statistics, "Max overlap:");
 	overlappingTextField = new TextField("overlappingTextField", statistics, 12, true);
 	new Label("HeuristicUnitsLabel2", statistics, "(A)");
 
+	// Closest pocket
+	new Label("ClosestPocketLabel", statistics, "Closest pocket:");
+	closestPocketTextField = new TextField("ClosestPocketTextField", statistics, 12, true);
+	new Label("EmptyLabel", statistics, "");
+
 	// Mean distance
-	new Label("meanDistanceLabel", statistics, "Mean distance:");
+	new Label("MeanDistanceLabel", statistics, "Mean distance:");
 	meanDistanceTextField = new TextField("MeanDistanceTextField", statistics, 12, true);
 	new Label("HeuristicUnitsLabel3", statistics, "(A)");
 
@@ -342,8 +350,8 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 	calculateForcesBtn->getValueChangedCallbacks().add([](CallbackData* cbData, void* app) {
 		auto _app = static_cast<VrProteinApp*>(app);
 		auto _cbData = static_cast<ToggleButton::ValueChangedCallbackData*>(cbData);
-		/* Set simulation status based on toggle button state: */
-		_app->toggleSimulation(_cbData->set, false);
+		/* Set forces based on toggle button state: */
+		_app->toggleForces(_cbData->set, false);
 	}, this);
 
 	statistics->manageChild();

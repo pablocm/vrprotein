@@ -23,6 +23,7 @@ public:
 	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
 	const std::unique_ptr<MolAtom>& FindBySerial(int serial) const;
 	const Point& GetCenter();
+	const Point& GetCenter() const;
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;
 	Point center;

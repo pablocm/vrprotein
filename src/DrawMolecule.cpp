@@ -15,7 +15,6 @@
 #include <GL/GLTransformationWrappers.h>
 #include <GL/GLExtensionManager.h>
 #include <GL/Extensions/GLARBVertexBufferObject.h>
-#include <Geometry/Sphere.h>
 #include "DrawMolecule.h"
 #include "Molecule.h"
 
@@ -75,7 +74,7 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 
 bool DrawMolecule::Intersects(const Ray& r) const {
 	auto transform = GetState();
-	Geometry::Sphere<Scalar, 3> sphere(Point::origin, 0);  // Test sphere
+	Sphere sphere(Point::origin, 0);  // Test sphere
 	for (const auto& atom : molecule->GetAtoms()) {
 		auto position = transform.transform(atom->position);
 		sphere.setCenter(position);
@@ -143,10 +142,6 @@ void DrawMolecule::SetState(const ONTransform& newState) {
 	angularVelocity = Vector::zero;
 }
 
-const Point& DrawMolecule::GetPosition() const {
-	return position;
-}
-
 void DrawMolecule::Step(const Vector& netForce, const Vector& netTorque, Scalar timeStep) {
 	const Scalar mass = 1;
 	const Scalar inertia = 1;
@@ -206,6 +201,13 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 		throw std::runtime_error("DrawStyle::None is not supported");
 	}
 
+	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.3f, 0.3f));
+	for (const auto& it : pocketCentroids) {
+		glPushMatrix();
+		glTranslate(it.second - Point::origin);
+		glDrawSphereIcosahedron(1, 1);
+		glPopMatrix();
+	}
 	glPopMatrix();
 }
 
@@ -343,6 +345,7 @@ void DrawMolecule::ComputeSurf() {
 }
 
 void DrawMolecule::ComputePockets() {
+	const int maxPockets = 5;	// max pockets per molecule
 	if (pocketsComputed)
 		return;
 	// Ver si existe un archivo .pocket ya generado por pocket
@@ -357,18 +360,22 @@ void DrawMolecule::ComputePockets() {
 			if (line.substr(0, 5) == "ATOM ") {
 				int atomSerial = stoi(line.substr(6, 5));
 				int pocketId = stoi(line.substr(70, 2));
+				if (pocketId > maxPockets)
+					break;
 				// add to dictionaries
 				atomToPocket[atomSerial] = pocketId;
 				pocketToAtoms[pocketId].push_back(atomSerial);
+				auto& atom = molecule->FindBySerial(atomSerial);
+				pocketToSpheres[pocketId].push_back(Sphere(atom->position, atom->radius));
 			}
 		}
 		infile.close();
 
 		// Calculate centroids of pockets
-		for(const auto& it : pocketToAtoms) {
+		for(const auto& it : pocketToSpheres) {
 			auto centroid = Vector::zero;
-			for(auto atomSerial : it.second) {
-				centroid += (molecule->FindBySerial(atomSerial)->position - Point::origin);
+			for(auto sphere : it.second) {
+				centroid += (sphere.getCenter() - Point::origin);
 			}
 			centroid /= it.second.size();
 			pocketCentroids[it.first] = Point(centroid);
@@ -427,7 +434,7 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 	if (it != atomToPocket.end()) {
 		switch(it->second) {
 		case 1:
-			return Color(0.0f, 0.0f, 1.0f);
+			return Color(0.3f, 0.3f, 1.0f);
 		case 2:
 			return Color(0.0f, 1.0f, 0.0f);
 		case 3:
@@ -449,6 +456,10 @@ const Molecule& DrawMolecule::GetMolecule() const {
 }
 
 const Point& DrawMolecule::GetCenter() {
+	return molecule->GetCenter();
+}
+
+const Point& DrawMolecule::GetCenter() const {
 	return molecule->GetCenter();
 }
 
@@ -476,6 +487,14 @@ void DrawMolecule::SetDrawStyle(DrawStyle style) {
 	if (style == DrawStyle::Surf) {
 		ComputeSurf();
 	}
+}
+
+const std::unordered_map<int, Point>& DrawMolecule::GetPocketCentroids() const {
+	return pocketCentroids;
+}
+
+const std::vector<Sphere>& DrawMolecule::GetSpheresOfPocket(int pocket) const {
+	return pocketToSpheres.at(pocket);
 }
 
 }

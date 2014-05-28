@@ -24,6 +24,8 @@ public:
 		Vector netForce;
 		Vector netTorque;
 		Scalar energy;
+		int closestPocket;
+		Scalar meanPocketDist;
 	};
 
 	/* Methods */

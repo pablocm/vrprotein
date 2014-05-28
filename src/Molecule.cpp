@@ -57,4 +57,10 @@ const Point& Molecule::GetCenter() {
 	return center;
 }
 
+const Point& Molecule::GetCenter() const {
+	if (!center_calculated)
+		throw std::runtime_error("Called GetCenter() const when center is unknown.");
+	return center;
+}
+
 }
