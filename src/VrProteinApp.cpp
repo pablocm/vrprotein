@@ -61,8 +61,8 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			isSimulating(false),
 			isCalculatingForces(true) {
 	/* load molecule data */
-	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
-	drawMolecules.push_back(LoadMolecule("alanin.pdb"));
+	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
+	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
 
 	/* Move them away */
 	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
@@ -254,19 +254,19 @@ PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	// Molecule Picker radio box
 	new Label("LoadLabel", settings, "Load molecule:");
 	auto moleculeLoader = new RadioBox("MoleculeLoader", settings, false);
-	new ToggleButton("AlaninBtn", moleculeLoader, "alanin.pdb");
+	new ToggleButton("AlaninBtn", moleculeLoader, "alanin/alanin.pdb");
 	//new ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
 	//new ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
-	new ToggleButton("1STPBtn", moleculeLoader, "1STP.pdb");
-	new ToggleButton("1STP_BTNBtn", moleculeLoader, "1STP_BTN.pdb");
-	new ToggleButton("1BU4Btn", moleculeLoader, "1BU4.pdb");
-	new ToggleButton("1BU4_2GPBtn", moleculeLoader, "1BU4_2GP.pdb");
+	new ToggleButton("1STPBtn", moleculeLoader, "1STP/1STP.pdb");
+	new ToggleButton("1STP_BTNBtn", moleculeLoader, "1STP/1STP_BTN.pdb");
+	new ToggleButton("1BU4Btn", moleculeLoader, "1BU4/1BU4.pdb");
+	new ToggleButton("1BU4_2GPBtn", moleculeLoader, "1BU4/1BU4_2GP.pdb");
 	//new ToggleButton("1MFABtn", moleculeLoader, "1MFA.pdb");
 	//new ToggleButton("1MFA_ABEBtn", moleculeLoader, "1MFA_ABE.pdb");
-	new ToggleButton("3VGCBtn", moleculeLoader, "3VGC.pdb");
-	new ToggleButton("3VGC_SRBBtn", moleculeLoader, "3VGC_SRB.pdb");
-	new ToggleButton("1XIGBtn", moleculeLoader, "1XIG.pdb");
-	new ToggleButton("1XIG_XYLBtn", moleculeLoader, "1XIG_XYL.pdb");
+	new ToggleButton("3VGCBtn", moleculeLoader, "3VGC/3VGC.pdb");
+	new ToggleButton("3VGC_SRBBtn", moleculeLoader, "3VGC/3VGC_SRB.pdb");
+	new ToggleButton("1XIGBtn", moleculeLoader, "1XIG/1XIG.pdb");
+	new ToggleButton("1XIG_XYLBtn", moleculeLoader, "1XIG/1XIG_XYL.pdb");
 	new ToggleButton("test_1Btn", moleculeLoader, "test_1.pdb");
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
