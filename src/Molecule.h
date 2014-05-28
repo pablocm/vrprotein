@@ -22,12 +22,11 @@ public:
 	void AddAtom(std::unique_ptr<MolAtom> &atom);
 	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
 	const std::unique_ptr<MolAtom>& FindBySerial(int serial) const;
-	const Point& GetCenter();
-	const Point& GetCenter() const;
+	void FixCenterOffset();	// Moves all atoms so that the centroid is at the origin
+	const Vector& GetOffset() const;	// Get offset (used to displace surf mesh)
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;
-	Point center;
-	bool center_calculated;
+	Vector offset;
 };
 
 }

@@ -70,8 +70,6 @@ public:
 	void ComputeSurf();
 	void ComputePockets();
 	const Molecule& GetMolecule() const;
-	const Point& GetCenter();
-	const Point& GetCenter() const;
 	std::string GetName() const;
 	DrawStyle GetDrawStyle() const;
 	void SetDrawStyle(DrawStyle style);

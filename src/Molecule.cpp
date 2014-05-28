@@ -12,14 +12,11 @@ using namespace std;
 
 namespace VrProtein {
 
-Molecule::Molecule() :
-			center(Point::origin),
-			center_calculated(false) {
+Molecule::Molecule() {
 }
 
 void Molecule::AddAtom(unique_ptr<MolAtom> &atom) {
 	atoms.push_back(move(atom));
-	center_calculated = false;
 }
 
 const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
@@ -29,6 +26,7 @@ const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
 }
 
 const unique_ptr<MolAtom>& Molecule::FindBySerial(int serial) const {
+	// Assumes atoms were inserted in serial order
 	auto it = std::lower_bound(atoms.begin(), atoms.end(), serial,
 			[](const unique_ptr<MolAtom>& a, const int serial) {
 				return a->serial < serial;
@@ -42,25 +40,25 @@ const unique_ptr<MolAtom>& Molecule::FindBySerial(int serial) const {
 	return result;
 }
 
-const Point& Molecule::GetCenter() {
-	if (!center_calculated) {
-		Vector center_temp = Vector::zero;
-		Scalar totalMass = 0;
-		for (const auto& a : atoms) {
-			center_temp += (a->position - Point::origin) * a->mass;
-			totalMass += a->mass;
-		}
-		center_temp /= totalMass;
-		center = Point(center_temp);
-		center_calculated = true;
+void Molecule::FixCenterOffset() {
+	// Calculate center (and offset)
+	Vector center = Vector::zero;
+	Scalar totalMass = 0;
+	for (const auto& a : atoms) {
+		center += (a->position - Point::origin) * a->mass;
+		totalMass += a->mass;
 	}
-	return center;
+	center /= totalMass;
+	offset = -center;
+
+	// Translate atoms
+	for (auto& a : atoms) {
+		a->position += offset;
+	}
 }
 
-const Point& Molecule::GetCenter() const {
-	if (!center_calculated)
-		throw std::runtime_error("Called GetCenter() const when center is unknown.");
-	return center;
+const Vector& Molecule::GetOffset() const {
+	return offset;
 }
 
 }

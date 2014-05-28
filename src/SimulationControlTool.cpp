@@ -25,6 +25,7 @@ void SimulationControlTool::registerTool(Vrui::ToolManager& toolManager) {
 	factory->setNumButtons(1, true); // Needs one button and takes optional buttons
 	factory->setButtonFunction(0, "Toggle Simulation");
 	factory->setButtonFunction(1, "Toggle Forces");
+	//factory->setButtonFunction(2, "Debug");
 
 	/* Register the custom tool class with the Vrui tool manager: */
 	toolManager.addClass(factory, Vrui::ToolManager::defaultToolFactoryDestructor);
@@ -46,6 +47,8 @@ void SimulationControlTool::buttonCallback(int buttonSlotIndex,
 			application->toggleSimulation(true);
 		else if (buttonSlotIndex == 1)
 			application->toggleForces(true);
+		else if (buttonSlotIndex == 2)
+			application->debug();
 	}
 	else {
 		// Button has just been released

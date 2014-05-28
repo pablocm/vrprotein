@@ -172,6 +172,15 @@ void VrProteinApp::frame() {
 	}
 }
 
+void VrProteinApp::debug() {
+	std::cout << "Debug:" << std::endl;
+
+	const auto& atoms = drawMolecules[0]->GetMolecule().GetAtoms();
+	for(const auto& a : atoms) {
+		std::cout << a->position[0] << "," << a->position[1] << "," << a->position[2] << std::endl;
+	}
+}
+
 /**************
  * UI methods:
  **************/
@@ -485,11 +494,6 @@ unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName)
 	drawMolecule->SetDrawStyle(selectedStyle);
 	drawMolecule->SetColorStyle(selectedColorStyle);
 
-	Point center;
-	if (drawMolecule) {
-		center = drawMolecule->GetCenter();
-	}
-	drawMolecule->SetState(ONTransform::translateToOriginFrom(center));
 	return drawMolecule;
 }
 

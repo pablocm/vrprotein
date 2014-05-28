@@ -48,6 +48,7 @@ public:
 	void toggleForces(bool calculateForces, bool refreshUI = true);
 	void setColorStyle(ColorStyle newStyle, bool refreshUI = true);
 	void setDrawStyle(DrawStyle newStyle, bool refreshUI = true);
+	void debug();
 
 private:
 	friend class MoleculeDragger;

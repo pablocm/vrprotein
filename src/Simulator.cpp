@@ -19,7 +19,7 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 	auto result = SimResult();
 	ONTransform ligTransform = ligand.GetState();
 	ONTransform recTransform = receptor.GetState();
-	Point ligPos = ligTransform.transform(ligand.GetCenter());
+	Point ligPos = ligTransform.getOrigin();
 
 	// Find closest pocket to ligand (if receptor has any)
 	result.closestPocket = -1;

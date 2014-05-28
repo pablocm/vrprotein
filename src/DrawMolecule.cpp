@@ -62,6 +62,7 @@ Methods of class DrawMolecule:
 
 DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	molecule = move(m);
+	molecule->FixCenterOffset();
 	style = DrawStyle::Points;
 	surfComputed = false;
 	pocketsComputed = false;
@@ -309,6 +310,7 @@ void DrawMolecule::ComputeSurf() {
 	if (!infile.fail()) {
 		cout << "success." << endl;
 
+		auto offset = molecule->GetOffset();
 		string line;
 		while (getline(infile, line)) {
 			int atom_id = stoi(line);
@@ -328,7 +330,7 @@ void DrawMolecule::ComputeSurf() {
 				int serial = atom->serial;
 				vertex->color = Vertex::Color(name/256.0f, serial/16384.0f, 0);
 				vertex->normal = Vertex::Normal(nx, ny, nz);
-				vertex->position = Vertex::Position(x, y, z);
+				vertex->position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
 
 				vertices.push_back(move(vertex));
 			}
@@ -453,14 +455,6 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 
 const Molecule& DrawMolecule::GetMolecule() const {
 	return *molecule;
-}
-
-const Point& DrawMolecule::GetCenter() {
-	return molecule->GetCenter();
-}
-
-const Point& DrawMolecule::GetCenter() const {
-	return molecule->GetCenter();
 }
 
 std::string DrawMolecule::GetName() const {
