@@ -1,5 +1,5 @@
 /*
- * SimulationToggleTool.cpp
+ * SimulationControlTool.cpp
  *
  *  Created on: May 23, 2014
  *      Author: pablocm
@@ -19,7 +19,8 @@ SimulationControlTool::SimulationControlTool(const Vrui::ToolFactory* factory,
 
 void SimulationControlTool::registerTool(Vrui::ToolManager& toolManager) {
 	/* Create a factory object for the custom tool class: */
-	factory = new ToolFactory("SimControlTool", "Simulation Control Tool", nullptr, toolManager);
+	factory = new ToolFactory("SimulationControlTool", "Simulation Control Tool", nullptr,
+			toolManager);
 
 	/* Set the custom tool class' input layout: */
 	factory->setNumButtons(1, true); // Needs one button and takes optional buttons
@@ -36,7 +37,7 @@ const Vrui::ToolFactory* SimulationControlTool::getFactory(void) const {
 }
 
 void SimulationControlTool::initialize() {
-	std::cout << "SimControlTool initialized." << std::endl;
+	std::cout << "SimulationControlTool initialized." << std::endl;
 }
 
 void SimulationControlTool::buttonCallback(int buttonSlotIndex,

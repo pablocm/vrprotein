@@ -34,6 +34,7 @@
 #include "Molecule.h"
 #include "MoleculeDragger.h"
 #include "PDBImporter.h"
+#include "ExperimentControlTool.h"
 #include "SimulationControlTool.h"
 
 using std::unique_ptr;
@@ -82,6 +83,7 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 
 	/* Set up custom tools: */
 	SimulationControlTool::registerTool(*Vrui::getToolManager());
+	ExperimentControlTool::registerTool(*Vrui::getToolManager());
 
 	/* Tell Vrui to run in a continuous frame sequence: */
 	Vrui::updateContinuously();
@@ -179,6 +181,41 @@ void VrProteinApp::debug() {
 	for(const auto& a : atoms) {
 		std::cout << a->position[0] << "," << a->position[1] << "," << a->position[2] << std::endl;
 	}
+}
+
+void VrProteinApp::setupExperiment(int experimentId) {
+	std::cout << "Loading experiment " << experimentId << std::endl;
+	switch(experimentId) {
+	case 1:
+		drawMolecules[0] = LoadMolecule("1STP/1STP.pdb");
+		drawMolecules[1] = LoadMolecule("1STP/1STP_BTN.pdb");
+		break;
+	case 2:
+		drawMolecules[0] = LoadMolecule("1BU4/1BU4.pdb");
+		drawMolecules[1] = LoadMolecule("1BU4/1BU4_2GP.pdb");
+		break;
+	case 3:
+		drawMolecules[0] = LoadMolecule("3VGC/3VGC.pdb");
+		drawMolecules[1] = LoadMolecule("3VGC/3VGC_SRB.pdb");
+		break;
+	case 4:
+		drawMolecules[0] = LoadMolecule("1XIG/1XIG.pdb");
+		drawMolecules[1] = LoadMolecule("1XIG/1XIG_XYL.pdb");
+		break;
+	default:
+		throw std::runtime_error("Bad call to setupExperiment");
+	}
+	drawMolecules[0]->SetColorStyle(ColorStyle::Pockets);
+	drawMolecules[1]->SetColorStyle(ColorStyle::CPK);
+	drawMolecules[0]->SetDrawStyle(DrawStyle::Surf);
+	drawMolecules[1]->SetDrawStyle(DrawStyle::Surf);
+	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
+	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+	centerDisplay();
+}
+
+void VrProteinApp::saveSolution() {
+	throw std::runtime_error("TODO");
 }
 
 /**************
@@ -487,7 +524,7 @@ void VrProteinApp::toolDestructionCallback(Vrui::ToolManager::ToolDestructionCal
 }
 
 /* Load a molecule from file */
-unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName) {
+unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName) const {
 	unique_ptr<Molecule> m = PDBImporter::ParsePDB("./datasets/" + fileName);
 	auto drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
 

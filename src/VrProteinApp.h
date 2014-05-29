@@ -49,6 +49,8 @@ public:
 	void setColorStyle(ColorStyle newStyle, bool refreshUI = true);
 	void setDrawStyle(DrawStyle newStyle, bool refreshUI = true);
 	void debug();
+	void setupExperiment(int experimentId);
+	void saveSolution();
 
 private:
 	friend class MoleculeDragger;
@@ -67,7 +69,7 @@ private:
 	Simulator::SimResult simResult;
 
 	/* Methods: */
-	std::unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName);
+	std::unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName) const;
 	int IndexOfMolecule(const std::string& moleculeName) const;
 	std::vector<std::string> GetDropdownItemStrings() const;
 	// Tool items

@@ -1,22 +1,22 @@
 /*
- * SimulationControlTool.h
+ * ExperimentControlTool.h
  *
  *  Created on: May 23, 2014
  *      Author: pablocm
  */
 
-#ifndef SIMULATIONCONTROLTOOL_H_
-#define SIMULATIONCONTROLTOOL_H_
+#ifndef EXPERIMENTCONTROLTOOL_H_
+#define EXPERIMENTCONTROLTOOL_H_
 
 #include <Vrui/GenericToolFactory.h>
 #include "VrProteinApp.h"
 
 namespace VrProtein {
 
-class SimulationControlTool: public Vrui::Tool, public Vrui::Application::Tool<VrProteinApp> {
+class ExperimentControlTool: public Vrui::Tool, public Vrui::Application::Tool<VrProteinApp> {
 public:
 	/* Methods: */
-	SimulationControlTool(const Vrui::ToolFactory* factory,
+	ExperimentControlTool(const Vrui::ToolFactory* factory,
 			const Vrui::ToolInputAssignment& inputAssignment);
 	static void registerTool(Vrui::ToolManager& toolManager); // Register tool class in Vrui
 
@@ -27,11 +27,11 @@ public:
 
 private:
 	/* Elements: */
-	typedef Vrui::GenericToolFactory<SimulationControlTool> ToolFactory; // Use generic factory class
-	friend class Vrui::GenericToolFactory<SimulationControlTool>;
+	typedef Vrui::GenericToolFactory<ExperimentControlTool> ToolFactory; // Use generic factory class
+	friend class Vrui::GenericToolFactory<ExperimentControlTool>;
 	static ToolFactory* factory; // Pointer to the factory object for this class
 };
 
 }
 
-#endif /* SIMULATIONCONTROLTOOL_H_ */
+#endif /* EXPERIMENTCONTROLTOOL_H_ */
