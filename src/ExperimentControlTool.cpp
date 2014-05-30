@@ -46,7 +46,6 @@ void ExperimentControlTool::buttonCallback(int buttonSlotIndex,
 		Vrui::InputDevice::ButtonCallbackData* cbData) {
 	if (cbData->newButtonState) {
 		// Button has just been pressed
-		std::cout << "Pressed " << buttonSlotIndex << std::endl;
 		if (buttonSlotIndex == 0)
 			application->saveSolution();
 		else

@@ -26,6 +26,8 @@
 #include <GLMotif/Label.h>
 #include <GLMotif/Menu.h>
 #include <GLMotif/RowColumn.h>
+#include <GLMotif/WidgetManager.h>
+#include <Misc/File.h>
 #include <Vrui/CoordinateManager.h>
 #include <Vrui/ToolManager.h>
 #include "VrProteinApp.h"
@@ -36,6 +38,8 @@
 #include "PDBImporter.h"
 #include "ExperimentControlTool.h"
 #include "SimulationControlTool.h"
+#include "utils/datetime.h"
+#include "utils/string.h"
 
 using std::unique_ptr;
 
@@ -59,8 +63,8 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			selectedStyle(DrawStyle::Surf),
 			selectedColorStyle(ColorStyle::CPK),
 			selectedMoleculeIdx(0),
-			isSimulating(false),
-			isCalculatingForces(true) {
+			isSimulating(true),
+			isCalculatingForces(false) {
 	/* load molecule data */
 	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
 	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
@@ -140,10 +144,17 @@ void VrProteinApp::display(GLContextData& contextData) const {
 }
 
 void VrProteinApp::frame() {
+	/* Skip every other frame: */
+	//frameSkip = !frameSkip;
+	//if (frameSkip)
+	//	return;
+
 	/* Calculate the current time step: */
 	double newFrameTime = Vrui::getApplicationTime();
 	Scalar timeStep = Scalar(newFrameTime - lastFrameTime);
 	lastFrameTime = newFrameTime;
+
+	bool isStatsVisible = Vrui::getWidgetManager()->isVisible(statisticsDialog);
 
 	if (isSimulating) {
 		// Calculate stuff
@@ -158,19 +169,24 @@ void VrProteinApp::frame() {
 				drawMolecules[0]->ResetForces();
 		}
 
-		// Draw statistics
-		heuristicTextField->setValue(simResult.energy);
-		overlappingTextField->setValue(overlappingAmount);
-		closestPocketTextField->setValue(simResult.closestPocket);
-		meanDistanceTextField->setValue(simResult.meanPocketDist);
-
+		// Draw statistics (update only if dialog is visible)
+		if (isStatsVisible) {
+			heuristicTextField->setValue(simResult.energy);
+			overlappingTextField->setValue(overlappingAmount);
+			closestPocketTextField->setValue(simResult.closestPocket);
+			meanDistanceTextField->setValue(simResult.meanPocketDist);
+			frameRateTextField->setValue((int)(1/timeStep));
+		}
 		hudWidget->setValue(simResult.energy);
 	}
 	else {
-		heuristicTextField->setString("---");
-		overlappingTextField->setString("---");
-		closestPocketTextField->setString("---");
-		meanDistanceTextField->setString("---");
+		if (isStatsVisible) {
+			heuristicTextField->setString("---");
+			overlappingTextField->setString("---");
+			closestPocketTextField->setString("---");
+			meanDistanceTextField->setString("---");
+			frameRateTextField->setValue((int)(1/timeStep));
+		}
 	}
 }
 
@@ -187,35 +203,78 @@ void VrProteinApp::setupExperiment(int experimentId) {
 	std::cout << "Loading experiment " << experimentId << std::endl;
 	switch(experimentId) {
 	case 1:
-		drawMolecules[0] = LoadMolecule("1STP/1STP.pdb");
-		drawMolecules[1] = LoadMolecule("1STP/1STP_BTN.pdb");
+		drawMolecules[0] = LoadMolecule("1STP/1STP_BTN.pdb");
+		drawMolecules[1] = LoadMolecule("1STP/1STP.pdb");
 		break;
 	case 2:
-		drawMolecules[0] = LoadMolecule("1BU4/1BU4.pdb");
-		drawMolecules[1] = LoadMolecule("1BU4/1BU4_2GP.pdb");
+		drawMolecules[0] = LoadMolecule("1BU4/1BU4_2GP.pdb");
+		drawMolecules[1] = LoadMolecule("1BU4/1BU4.pdb");
 		break;
 	case 3:
-		drawMolecules[0] = LoadMolecule("3VGC/3VGC.pdb");
-		drawMolecules[1] = LoadMolecule("3VGC/3VGC_SRB.pdb");
+		drawMolecules[0] = LoadMolecule("3VGC/3VGC_SRB.pdb");
+		drawMolecules[1] = LoadMolecule("3VGC/3VGC.pdb");
 		break;
 	case 4:
-		drawMolecules[0] = LoadMolecule("1XIG/1XIG.pdb");
-		drawMolecules[1] = LoadMolecule("1XIG/1XIG_XYL.pdb");
+		drawMolecules[0] = LoadMolecule("1XIG/1XIG_XYL.pdb");
+		drawMolecules[1] = LoadMolecule("1XIG/1XIG.pdb");
 		break;
 	default:
 		throw std::runtime_error("Bad call to setupExperiment");
 	}
-	drawMolecules[0]->SetColorStyle(ColorStyle::Pockets);
-	drawMolecules[1]->SetColorStyle(ColorStyle::CPK);
+	drawMolecules[0]->SetColorStyle(ColorStyle::CPK);
+	drawMolecules[1]->SetColorStyle(ColorStyle::Pockets);
 	drawMolecules[0]->SetDrawStyle(DrawStyle::Surf);
 	drawMolecules[1]->SetDrawStyle(DrawStyle::Surf);
-	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
-	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
 	centerDisplay();
 }
 
 void VrProteinApp::saveSolution() {
-	throw std::runtime_error("TODO");
+	if (Vrui::isMaster()) {
+		/* Ensure file is open: */
+		if (experimentFile == nullptr) {
+			try {
+				auto filename = TimeToString("Experiment %Y%m%d-%H%M.txt").c_str();
+				experimentFile = unique_ptr<Misc::File>(new Misc::File(filename, "wt"));
+				std::cout << "Created file " << filename << std::endl;
+			}
+			catch (Misc::File::OpenError&) {
+				Vrui::showErrorMessage("Experiment", "Could not create experiment file.");
+			}
+		}
+		/* Write to file if its opened: */
+		if (experimentFile != nullptr) {
+			auto message = TimeToString("** Solution saved at %H:%M:%S") + "\n";
+			message += "Ligand: " + drawMolecules[0]->GetMolecule().source_filename + "\n"
+					+ ONTransformToString(drawMolecules[0]->GetState());
+			message += "Protein: " + drawMolecules[1]->GetMolecule().source_filename + "\n"
+					+ ONTransformToString(drawMolecules[1]->GetState());
+			if (isSimulating) {
+				message += "Pocket:\n";
+				message += "- Closest: " + std::to_string(simResult.closestPocket) + "\n"
+						+ "- Mean Pocket Dist: " + std::to_string(simResult.meanPocketDist) + "\n"
+						+ "- Energy: " + std::to_string(simResult.energy) + "\n"
+						+ "- Overlapping: "
+						+ std::to_string(drawMolecules[0]->Intersects(*drawMolecules[1])) + "\n";
+			}
+			else
+				std::cout << "WARNING: Simulation is OFF, pocket data not saved!" << std::endl;
+
+			message += "\n";
+			experimentFile->puts(message.c_str());
+			fflush(experimentFile->getFilePtr());
+			std::cout << message;
+		}
+	}
+}
+
+std::string VrProteinApp::ONTransformToString(const ONTransform& transform) const {
+	const Scalar* p = transform.getTranslation().getComponents();
+	const Scalar* q = transform.getRotation().getQuaternion();
+	auto result = string_format("- Position: (%f, %f, %f)\n", p[0], p[1], p[2]);
+	result += string_format("- Orientation: (%f, %f, %f, %f)\n", q[0], q[1], q[2], q[3]);
+	return result;
 }
 
 /**************
@@ -373,12 +432,17 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 	// Closest pocket
 	new Label("ClosestPocketLabel", statistics, "Closest pocket:");
 	closestPocketTextField = new TextField("ClosestPocketTextField", statistics, 12, true);
-	new Label("EmptyLabel", statistics, "");
+	new Label("EmptyLabel1", statistics, "");
 
 	// Mean distance
 	new Label("MeanDistanceLabel", statistics, "Mean distance:");
 	meanDistanceTextField = new TextField("MeanDistanceTextField", statistics, 12, true);
 	new Label("HeuristicUnitsLabel3", statistics, "(A)");
+
+	// Mean distance
+	new Label("FrameRateLabel", statistics, "Frame Rate:");
+	frameRateTextField = new TextField("FrameRateTextField", statistics, 12, true);
+	new Label("EmptyLabel2", statistics, "");
 
 	// Do realtime statistics
 	simulateBtn = new ToggleButton("SimulateBtn", statistics, "Simulate");

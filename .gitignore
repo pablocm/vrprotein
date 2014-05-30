@@ -36,3 +36,4 @@ datasets/
 # Misc
 OculusRiftCalibration.dat
 MeasurementTool*.dat
+Experiment*.txt

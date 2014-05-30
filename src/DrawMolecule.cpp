@@ -230,7 +230,7 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 		dataItem->displayListColorStyle = colorStyle;
 
 		/* Compile and execute a new display list */
-		std::cout << "Compiling new display list" << std::endl;
+		//std::cout << "Compiling new display list" << std::endl;
 		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 		{
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
@@ -275,7 +275,7 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 		dataItem->displayListColorStyle = colorStyle;
 
 		/* Compile and execute a new display list */
-		std::cout << "Compiling new display list" << std::endl;
+		//std::cout << "Compiling new display list" << std::endl;
 		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 		{
 			glBegin(GL_TRIANGLES);

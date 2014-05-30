@@ -22,6 +22,9 @@
 #include "Simulator.h"
 
 /* Forward declarations: */
+namespace Misc {
+class File;
+}
 namespace VrProtein {
 enum class ColorStyle;
 class DrawMolecule;
@@ -64,14 +67,19 @@ private:
 	ColorStyle selectedColorStyle;
 	int selectedMoleculeIdx;
 	// statistics
+	bool frameSkip;
 	bool isSimulating;
 	bool isCalculatingForces;
 	Simulator::SimResult simResult;
+	// Experiment
+	std::unique_ptr<Misc::File> experimentFile;
 
 	/* Methods: */
 	std::unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName) const;
 	int IndexOfMolecule(const std::string& moleculeName) const;
 	std::vector<std::string> GetDropdownItemStrings() const;
+	//Helper
+	std::string ONTransformToString(const ONTransform& transform) const;
 	// Tool items
 	std::vector<std::unique_ptr<MoleculeDragger>> moleculeDraggers;
 	// UI Items
@@ -91,6 +99,7 @@ private:
 	GLMotif::TextField* overlappingTextField;	// Current value for overlapping
 	GLMotif::TextField* closestPocketTextField; // Current value for closest pocket
 	GLMotif::TextField* meanDistanceTextField;	// Current value for mean distance to pocket
+	GLMotif::TextField* frameRateTextField;		// Current value for frame rate
 	// UI Constructors
 	GLMotif::PopupMenu* createMainMenu(void);
 	GLMotif::PopupWindow* createSettingsDialog(void);

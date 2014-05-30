@@ -27,7 +27,7 @@ public:
 
 private:
 	/* Elements: */
-	typedef Vrui::GenericToolFactory<ExperimentControlTool> ToolFactory; // Use generic factory class
+	typedef Vrui::GenericToolFactory<ExperimentControlTool> ToolFactory; // Generic factory class
 	friend class Vrui::GenericToolFactory<ExperimentControlTool>;
 	static ToolFactory* factory; // Pointer to the factory object for this class
 };
