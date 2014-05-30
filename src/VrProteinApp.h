@@ -94,7 +94,8 @@ private:
 	GLMotif::RadioBox* stylePicker; // Radio box for draw style
 	GLMotif::RadioBox* colorStylePicker; // Radio box for color style
 	GLMotif::PopupWindow* statisticsDialog; // The statistics dialog
-	HudWidget* hudWidget;
+	HudWidget* overlapWidget;
+	HudWidget* distanceWidget;
 	GLMotif::ToggleButton* simulateBtn;		// Toggle for isSimulating
 	GLMotif::ToggleButton* calculateForcesBtn; // Toggle for isCalculatingForces
 	GLMotif::TextField* heuristicTextField;	// Current value for heuristic

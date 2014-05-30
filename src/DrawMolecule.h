@@ -77,6 +77,7 @@ public:
 	void SetColorStyle(ColorStyle useColor);
 	const std::unordered_map<int, Point>& GetPocketCentroids() const;
 	const std::vector<Sphere>& GetSpheresOfPocket(int pocket) const;
+	std::string GetNameOfPocket(int pocket) const;
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<std::unique_ptr<Vertex>> vertices;

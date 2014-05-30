@@ -83,7 +83,12 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	Vrui::setMainMenu(mainMenu);
 	settingsDialog = createSettingsDialog();
 	statisticsDialog = createStatisticsDialog();
-	hudWidget = new HudWidget("HudWidget", Vrui::getWidgetManager(), "L-J Potential");
+
+	overlapWidget = new HudWidget("OverlapWidget", Vrui::getWidgetManager(), "Overlap");
+	overlapWidget->setOptions(false, 0, 10, false, "%4.2f");
+
+	distanceWidget = new HudWidget("DistanceWidget", Vrui::getWidgetManager(), "Mean dist.");
+	distanceWidget->setOptions(false, 0, 5, false, "%4.2f");
 
 	/* Set up custom tools: */
 	SimulationControlTool::registerTool(*Vrui::getToolManager());
@@ -178,7 +183,10 @@ void VrProteinApp::frame() {
 			meanDistanceTextField->setValue(simResult.meanPocketDist);
 			frameRateTextField->setValue((int)(1/timeStep));
 		}
-		hudWidget->setValue(simResult.energy);
+		// widgets
+		overlapWidget->setValue(overlappingAmount);
+		distanceWidget->setTitle("Dist. " + drawMolecules[1]->GetNameOfPocket(simResult.closestPocket));
+		distanceWidget->setValue(simResult.meanPocketDist);
 	}
 	else {
 		if (isStatsVisible) {
@@ -323,10 +331,14 @@ PopupMenu* VrProteinApp::createMainMenu(void) {
 	showHudWidgetToggle->getValueChangedCallbacks().add([](CallbackData* cbData, void* app) {
 		auto _app = static_cast<VrProteinApp*>(app);
 		/* Hide or show HUD dialog based on toggle button state: */
-		if (static_cast<ToggleButton::ValueChangedCallbackData*>(cbData)->set)
-			Vrui::popupPrimaryWidget(_app->hudWidget);
-		else
-			Vrui::popdownPrimaryWidget(_app->hudWidget);
+		if (static_cast<ToggleButton::ValueChangedCallbackData*>(cbData)->set) {
+			Vrui::popupPrimaryWidget(_app->overlapWidget);
+			Vrui::popupPrimaryWidget(_app->distanceWidget);
+		}
+		else {
+			Vrui::popdownPrimaryWidget(_app->overlapWidget);
+			Vrui::popdownPrimaryWidget(_app->distanceWidget);
+		}
 	}, this);
 
 	mainMenu->manageChild();
@@ -466,6 +478,7 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 		auto _app = static_cast<VrProteinApp*>(app);
 		auto _cbData = static_cast<ToggleButton::ValueChangedCallbackData*>(cbData);
 		/* Set forces based on toggle button state: */
+		_app->forceAttenuation = 1;
 		_app->toggleForces(_cbData->set, false);
 	}, this);
 

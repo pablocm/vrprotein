@@ -75,9 +75,18 @@ void HudWidget::setValue(Scalar newValue) {
 	if (currentValue != newValue) {
 		currentValue = newValue;
 		char buffer[32];
-		snprintf(buffer, 32, "%4.0f", newValue);
+		snprintf(buffer, 32, valueFormat.c_str(), newValue);
 		valueLabel->setString(buffer);
 	}
+}
+
+void HudWidget::setOptions(bool useArcTan, Scalar minValue, Scalar maxValue, bool showMiddleLine,
+		std::string valueFormat) {
+	this->useArctan = useArcTan;
+	this->minValue = minValue;
+	this->maxValue = maxValue;
+	this->showMiddleLine = showMiddleLine;
+	this->valueFormat = valueFormat;
 }
 
 GLMotif::Vector HudWidget::calcNaturalSize() const {
@@ -140,7 +149,11 @@ void HudWidget::draw(GLContextData& contextData) const {
 	GLfloat y2 = y1 + labelSize[1];
 
 	// Scale currentValue between -1 and 1 using non-linear arc tangent
-	GLfloat valueScaled = Math::atan(GLfloat(currentValue) / 50) * 2 / Math::Constants<GLfloat>::pi;
+	GLfloat valueScaled;
+	if (useArctan)
+		valueScaled = GLfloat(Math::atan(currentValue / maxValue)) * 2 / Math::Constants<GLfloat>::pi;
+	else
+		valueScaled = Math::clamp((currentValue - minValue) / (maxValue - minValue) * 2 - 1, -1.0, 1.0);
 	GLfloat xm = (x0 + x1) / 2 + (x1 - x0) / 2 * valueScaled;
 
 	/* Draw the measure bar: */
@@ -159,8 +172,10 @@ void HudWidget::draw(GLContextData& contextData) const {
 	glVertex2f(x0, y2);
 	glVertex2f(x1, y0);
 	glVertex2f(x1, y2);
-	glVertex2f((x0 + x1) / 2, (y0 + y1) / 2);	// shadow for optimal value line
-	glVertex2f((x0 + x1) / 2, (y1 + y2) / 2);
+	if (showMiddleLine) {
+		glVertex2f((x0 + x1) / 2, (y0 + y1) / 2);	// shadow for optimal value line
+		glVertex2f((x0 + x1) / 2, (y1 + y2) / 2);
+	}
 
 	glColor(getForegroundColor()); // white horizontal line
 	glVertex2f(x0, y1);
@@ -173,8 +188,10 @@ void HudWidget::draw(GLContextData& contextData) const {
 	glVertex2f(x0, y2);
 	glVertex2f(x1, y0);
 	glVertex2f(x1, y2);
-	glVertex2f((x0 + x1) / 2, (y0 + y1) / 2);	// white optimal value line
-	glVertex2f((x0 + x1) / 2, (y1 + y2) / 2);
+	if (showMiddleLine) {
+		glVertex2f((x0 + x1) / 2, (y0 + y1) / 2);	// white optimal value line
+		glVertex2f((x0 + x1) / 2, (y1 + y2) / 2);
+	}
 	glEnd();
 
 	glLineWidth(3.0f);

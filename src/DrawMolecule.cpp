@@ -463,6 +463,26 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 	return Color(0.9f, 0.9f, 0.9f); // white
 }
 
+std::string DrawMolecule::GetNameOfPocket(int pocket) const {
+	if (pocket == -1)
+		return "---";
+
+	int randomId = (pocket + molecule->GetAtoms().size()) % 5 + 1;
+	switch (randomId) {
+	case 1:
+		return "blue";
+	case 2:
+		return "green";
+	case 3:
+		return "cyan";
+	case 4:
+		return "red";
+	case 5:
+		return "pink";
+	}
+	return "??";
+}
+
 const Molecule& DrawMolecule::GetMolecule() const {
 	return *molecule;
 }

@@ -33,6 +33,8 @@ public:
 	virtual ~HudWidget();
 	void setTitle(std::string newTitle);
 	void setValue(Scalar newValue);
+	void setOptions(bool useArcTan, Scalar minValue, Scalar maxValue, bool showMiddleLine,
+			std::string valueFormat);
 
 	/* Methods from GLMotif::Widget: */
 	virtual const GLMotif::WidgetManager* getManager(void) const {
@@ -52,6 +54,11 @@ private:
 	GLLabel* titleLabel; // Label to display the title
 	Scalar currentValue; // Current display value
 	GLLabel* valueLabel; // Label to display the current value
+	bool showMiddleLine;
+	bool useArctan;
+	Scalar minValue;
+	Scalar maxValue;
+	std::string valueFormat;
 };
 
 } /* namespace VrProtein */
