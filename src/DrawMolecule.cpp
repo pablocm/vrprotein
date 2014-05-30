@@ -102,7 +102,7 @@ bool DrawMolecule::Intersects(const Point& p) const {
 }
 
 Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
-	Scalar intersectionAmount2 = 0;
+	//Scalar intersectionAmount2 = 0;
 	Scalar intersectionAmount = 0;
 	auto transform = GetState();
 	auto otherTransform = other.GetState();
@@ -113,10 +113,12 @@ Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
 			auto otherPosition = otherTransform.transform(otherAtom->position);
 			auto dist2 = Geometry::sqrDist(position, otherPosition);
 			auto mindist2 = Math::sqr(atom->radius + otherAtom->radius);
-			if (mindist2 - dist2 > intersectionAmount2) { // TODO: Check math
-				intersectionAmount2 = mindist2 - dist2;
-				intersectionAmount = Math::sqrt(mindist2) - Math::sqrt(dist2);
-			}
+			//if (mindist2 - dist2 > intersectionAmount2) { // TODO: Check math
+			//	intersectionAmount2 = mindist2 - dist2;
+			//	intersectionAmount = Math::sqrt(mindist2) - Math::sqrt(dist2);
+			//}
+			if (dist2 < mindist2)
+				intersectionAmount += Math::sqrt(mindist2) - Math::sqrt(dist2);
 		}
 	}
 	return intersectionAmount;
@@ -145,7 +147,7 @@ void DrawMolecule::SetState(const ONTransform& newState) {
 
 void DrawMolecule::Step(const Vector& netForce, const Vector& netTorque, Scalar timeStep) {
 	const Scalar mass = 1;
-	const Scalar inertia = 1;
+	const Scalar inertia = 2;
 	Scalar t2 = timeStep * timeStep;
 
 	Vector linearAccel = netForce / mass;

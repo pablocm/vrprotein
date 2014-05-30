@@ -193,29 +193,33 @@ void VrProteinApp::frame() {
 
 void VrProteinApp::debug() {
 	std::cout << "Debug:" << std::endl;
-
-	const auto& atoms = drawMolecules[0]->GetMolecule().GetAtoms();
-	for(const auto& a : atoms) {
-		std::cout << a->position[0] << "," << a->position[1] << "," << a->position[2] << std::endl;
-	}
+	selectedMoleculeIdx = 1;
+	if (drawMolecules[1]->GetDrawStyle() == DrawStyle::Surf)
+		setDrawStyle(DrawStyle::Points);
+	else
+		setDrawStyle(DrawStyle::Surf);
 }
 
 void VrProteinApp::setupExperiment(int experimentId) {
 	std::cout << "Loading experiment " << experimentId << std::endl;
 	switch(experimentId) {
 	case 1:
-		drawMolecules[0] = LoadMolecule("1STP/1STP_BTN.pdb");
-		drawMolecules[1] = LoadMolecule("1STP/1STP.pdb");
-		break;
-	case 2:
 		drawMolecules[0] = LoadMolecule("1BU4/1BU4_2GP.pdb");
 		drawMolecules[1] = LoadMolecule("1BU4/1BU4.pdb");
 		break;
+	case 2:
+		drawMolecules[0] = LoadMolecule("1STP/1STP_BTN.pdb");
+		drawMolecules[1] = LoadMolecule("1STP/1STP.pdb");
+		break;
 	case 3:
+		drawMolecules[0] = LoadMolecule("3PTB/3PTB_BEN.pdb");
+		drawMolecules[1] = LoadMolecule("3PTB/3PTB.pdb");
+		break;
+	case 4:
 		drawMolecules[0] = LoadMolecule("3VGC/3VGC_SRB.pdb");
 		drawMolecules[1] = LoadMolecule("3VGC/3VGC.pdb");
 		break;
-	case 4:
+	case 5:
 		drawMolecules[0] = LoadMolecule("1XIG/1XIG_XYL.pdb");
 		drawMolecules[1] = LoadMolecule("1XIG/1XIG.pdb");
 		break;

@@ -23,12 +23,14 @@ void ExperimentControlTool::registerTool(Vrui::ToolManager& toolManager) {
 			toolManager);
 
 	/* Set the custom tool class' input layout: */
-	factory->setNumButtons(5, false);
+	factory->setNumButtons(7, false);
 	factory->setButtonFunction(0, "Save solution");
 	factory->setButtonFunction(1, "Setup exp 1");
 	factory->setButtonFunction(2, "Setup exp 2");
 	factory->setButtonFunction(3, "Setup exp 3");
 	factory->setButtonFunction(4, "Setup exp 4");
+	factory->setButtonFunction(5, "Setup exp 5");
+	factory->setButtonFunction(6, "Debug");
 
 	/* Register the custom tool class with the Vrui tool manager: */
 	toolManager.addClass(factory, Vrui::ToolManager::defaultToolFactoryDestructor);
@@ -48,6 +50,8 @@ void ExperimentControlTool::buttonCallback(int buttonSlotIndex,
 		// Button has just been pressed
 		if (buttonSlotIndex == 0)
 			application->saveSolution();
+		else if (buttonSlotIndex == 6)
+			application->debug();
 		else
 			application->setupExperiment(buttonSlotIndex);
 	}

@@ -129,7 +129,7 @@ void HudWidget::draw(GLContextData& contextData) const {
 	glPushAttrib(GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT | GL_LINE_BIT);
 	glDisable(GL_LIGHTING);
 
-	const float currentPhysLength = 1.0f;
+	const float currentPhysLength = titleLabel->getLabelSize()[0];
 	/* Calculate the scale bar layout: */
 	GLfloat x0 = getInterior().origin[0]
 			+ (getInterior().size[0] - GLfloat(currentPhysLength)) * 0.5f;
@@ -149,6 +149,8 @@ void HudWidget::draw(GLContextData& contextData) const {
 	glColor(getBackgroundColor());
 	glVertex2f(x0, y1);
 	glVertex2f(x1, y1);
+	glVertex2f(xm, y0);	// shadow for currentValue line
+	glVertex2f(xm, y2);
 	glEnd();
 
 	glLineWidth(3.0f);
@@ -159,8 +161,6 @@ void HudWidget::draw(GLContextData& contextData) const {
 	glVertex2f(x1, y2);
 	glVertex2f((x0 + x1) / 2, (y0 + y1) / 2);	// shadow for optimal value line
 	glVertex2f((x0 + x1) / 2, (y1 + y2) / 2);
-	glVertex2f(xm, y0);	// shadow for currentValue line
-	glVertex2f(xm, y2);
 
 	glColor(getForegroundColor()); // white horizontal line
 	glVertex2f(x0, y1);
@@ -175,8 +175,11 @@ void HudWidget::draw(GLContextData& contextData) const {
 	glVertex2f(x1, y2);
 	glVertex2f((x0 + x1) / 2, (y0 + y1) / 2);	// white optimal value line
 	glVertex2f((x0 + x1) / 2, (y1 + y2) / 2);
+	glEnd();
 
-	glColor(Color(1.0f, 0.0, 0.0));
+	glLineWidth(3.0f);
+	glBegin(GL_LINES);
+	glColor(Color(0.8f, 0.2f, 0.1f));
 	glVertex2f(xm, y0);	// red currentValue line
 	glVertex2f(xm, y2);
 	glEnd();
