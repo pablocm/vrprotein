@@ -206,6 +206,7 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 		throw std::runtime_error("DrawStyle::None is not supported");
 	}
 
+	/* Draw Pocket centroids:
 	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.3f, 0.3f));
 	for (const auto& it : pocketCentroids) {
 		glPushMatrix();
@@ -213,6 +214,7 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 		glDrawSphereIcosahedron(1, 1);
 		glPopMatrix();
 	}
+	*/
 	glPopMatrix();
 }
 
@@ -438,17 +440,19 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 
 	auto it = atomToPocket.find(serial);
 	if (it != atomToPocket.end()) {
-		switch(it->second) {
+		// randomize color
+		int randomId = (it->second + molecule->GetAtoms().size()) % 5 + 1;
+		switch(randomId) {
 		case 1:
 			return Color(0.3f, 0.3f, 1.0f);
 		case 2:
-			return Color(0.0f, 1.0f, 0.0f);
+			return Color(0.3f, 1.0f, 0.3f);
 		case 3:
-			return Color(0.0f, 1.0f, 1.0f);
+			return Color(0.3f, 1.0f, 1.0f);
 		case 4:
-			return Color(1.0f, 0.0f, 0.0f);
+			return Color(1.0f, 0.3f, 0.3f);
 		case 5:
-			return Color(1.0f, 0.0f, 1.0f);
+			return Color(1.0f, 0.3f, 1.0f);
 		}
 		//return Color(221/255.0f, 119/255.0f, 1); // pink
 		return Color(0.7f, 0.7f, 0.7f);
