@@ -24,6 +24,8 @@ public:
 	virtual const Vrui::ToolFactory* getFactory(void) const;
 	virtual void initialize(void);
 	virtual void buttonCallback(int buttonSlotIndex, Vrui::InputDevice::ButtonCallbackData* cbData);
+	virtual void valuatorCallback(int valuatorSlotIndex,
+			Vrui::InputDevice::ValuatorCallbackData* cbData);
 
 private:
 	/* Elements: */

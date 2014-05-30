@@ -173,6 +173,10 @@ void DrawMolecule::Step(const Vector& netForce, const Vector& netTorque, Scalar 
 	for(int i = 0; i < 3; i++) {
 		position[i] = Math::clamp(position[i], Scalar(-40), Scalar(40));
 	}
+
+	// Attenuate velocities over time
+	velocity *= 0.95;
+	angularVelocity *= 0.95;
 }
 
 void DrawMolecule::ResetForces() {

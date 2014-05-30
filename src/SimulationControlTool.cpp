@@ -23,10 +23,10 @@ void SimulationControlTool::registerTool(Vrui::ToolManager& toolManager) {
 			toolManager);
 
 	/* Set the custom tool class' input layout: */
-	factory->setNumButtons(1, true); // Needs one button and takes optional buttons
+	factory->setNumButtons(1, false);
 	factory->setButtonFunction(0, "Toggle Simulation");
-	factory->setButtonFunction(1, "Toggle Forces");
-	//factory->setButtonFunction(2, "Debug");
+	factory->setNumValuators(1, false);
+	factory->setValuatorFunction(0, "Toggle Forces");
 
 	/* Register the custom tool class with the Vrui tool manager: */
 	toolManager.addClass(factory, Vrui::ToolManager::defaultToolFactoryDestructor);
@@ -46,17 +46,24 @@ void SimulationControlTool::buttonCallback(int buttonSlotIndex,
 		// Button has just been pressed
 		if (buttonSlotIndex == 0)
 			application->toggleSimulation(true);
-		else if (buttonSlotIndex == 1)
-			application->toggleForces(true);
-		else if (buttonSlotIndex == 2)
-			application->debug();
+		//else if (buttonSlotIndex == 1)
+		//	application->toggleForces(true);
+		//else if (buttonSlotIndex == 2)
+		//	application->debug();
 	}
 	else {
 		// Button has just been released
 		if (buttonSlotIndex == 0)
 			application->toggleSimulation(false);
-		else if (buttonSlotIndex == 1)
-			application->toggleForces(false);
+		//else if (buttonSlotIndex == 1)
+		//	application->toggleForces(false);
+	}
+}
+
+void SimulationControlTool::valuatorCallback(int valuatorSlotIndex,
+			Vrui::InputDevice::ValuatorCallbackData* cbData) {
+	if (valuatorSlotIndex == 0) {
+		application->setForceAttenuation(cbData->newValuatorValue);
 	}
 }
 

@@ -49,6 +49,7 @@ public:
 	void centerDisplay();
 	void toggleSimulation(bool simulate, bool refreshUI = true);
 	void toggleForces(bool calculateForces, bool refreshUI = true);
+	void setForceAttenuation(Scalar factor);
 	void setColorStyle(ColorStyle newStyle, bool refreshUI = true);
 	void setDrawStyle(DrawStyle newStyle, bool refreshUI = true);
 	void debug();
@@ -70,6 +71,7 @@ private:
 	bool frameSkip;
 	bool isSimulating;
 	bool isCalculatingForces;
+	Scalar forceAttenuation;	// 1.0 = Normal, 0.0 = Forces do not affect molecule.
 	Simulator::SimResult simResult;
 	// Experiment
 	std::unique_ptr<Misc::File> experimentFile;

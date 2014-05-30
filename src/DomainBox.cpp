@@ -34,6 +34,7 @@ void DomainBox::initContext(GLContextData& contextData) const {
 			glDisable(GL_LIGHTING);
 			glLineWidth(2.0f);
 			/* Grid's domain box: */
+			/*
 			glColor(lineColor);
 			glBegin(GL_LINE_STRIP);
 			{
@@ -59,6 +60,7 @@ void DomainBox::initContext(GLContextData& contextData) const {
 				glVertex(min[0], max[1], max[2]);
 			}
 			glEnd();
+			*/
 			/* Origin lines */
 			glColor(originColor);
 			glBegin(GL_LINES);

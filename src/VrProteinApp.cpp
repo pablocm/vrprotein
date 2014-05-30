@@ -164,7 +164,8 @@ void VrProteinApp::frame() {
 		// Apply force to molecule
 		if (isCalculatingForces) {
 			if (simResult.energy != 0)
-				drawMolecules[0]->Step(simResult.netForce, simResult.netTorque, timeStep);
+				drawMolecules[0]->Step(simResult.netForce * forceAttenuation,
+						simResult.netTorque * forceAttenuation, timeStep);
 			else
 				drawMolecules[0]->ResetForces();
 		}
@@ -505,6 +506,16 @@ void VrProteinApp::toggleForces(bool calculateForces, bool refreshUI /* = true *
 		drawMolecules[0]->ResetForces();
 	if (refreshUI) {
 		calculateForcesBtn->setToggle(calculateForces);
+	}
+}
+
+void VrProteinApp::setForceAttenuation(Scalar factor) {
+	forceAttenuation = factor;
+	if (factor < 0.05 && isCalculatingForces) {
+		toggleForces(false);
+	}
+	else if (factor > 0.05 && !isCalculatingForces) {
+		toggleForces(true);
 	}
 }
 
