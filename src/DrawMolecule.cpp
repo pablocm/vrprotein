@@ -29,14 +29,17 @@ Methods of class DrawMolecule::DataItem:
 DrawMolecule::DataItem::DataItem() :
 			hasVertexBufferObjectExtension(GLARBVertexBufferObject::isSupported()),
 			vertexDataVersion(0) {
-	// this is not used, just for future reference
 	if (hasVertexBufferObjectExtension) {
+		std::cout << "Video card supports GL_ARB_vertex_buffer_object." << std::endl;
 		/* Initialize the vertex buffer object extension: */
 		GLARBVertexBufferObject::initExtension();
 
 		/* Create the vertex and index buffer objects: */
 		glGenBuffersARB(6, faceVertexBufferObjectIDs);
 		glGenBuffersARB(6, faceIndexBufferObjectIDs);
+	}
+	else {
+		std::cout << "Video card does NOT support GL_ARB_vertex_buffer_object." << std::endl;
 	}
 
 	// Create display list for storing molecule rendering
@@ -288,19 +291,19 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 		{
 			glBegin(GL_TRIANGLES);
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
-			for (auto& v : vertices) {
+			for (const auto& v : vertices) {
 				if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
 					// The atom info is encoded inside the color components (i know...)
-					char name = (char)(v->color[0] * 256.0f);
+					char name = (char)(v.color[0] * 256.0f);
 					auto atomColor = AtomColor(name);
 					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
 				}
 				else if (colorStyle == ColorStyle::Pockets) {
-					int serial = (int)(v->color[1] * 16384.0f);
+					int serial = (int)(v.color[1] * 16384.0f);
 					auto atomColor = AtomColor(serial);
 					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
 				}
-				glVertex(*v);
+				glVertex(v);
 			}
 			glEnd();
 		}
@@ -311,6 +314,9 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 void DrawMolecule::ComputeSurf() {
 	if (surfComputed)
 		return;
+	if (ComputeSurfIdx())
+		return;
+
 	// Ver si existe un archivo .tri ya generado por SURF
 	cout << "Trying to open " << molecule->source_filename << ".tri ...";
 	ifstream infile;
@@ -318,7 +324,7 @@ void DrawMolecule::ComputeSurf() {
 	if (!infile.fail()) {
 		cout << "success." << endl;
 
-		auto offset = molecule->GetOffset();
+		const Vector offset = molecule->GetOffset();
 		string line;
 		while (getline(infile, line)) {
 			int atom_id = stoi(line);
@@ -330,17 +336,18 @@ void DrawMolecule::ComputeSurf() {
 				if (6 != sscanf(line.c_str(), "%f %f %f %f %f %f", &x, &y, &z, &nx, &ny, &nz))
 					throw std::runtime_error("Error parsing .tri");
 
-				auto vertex = unique_ptr<Vertex>(new Vertex());
+
+				Vertex vertex;
 				//vertex->color = *AtomColor(molecule->GetAtoms()[atom_id]->short_name).release();
 				// The atom info is encoded inside the color components (i know...)
-				auto& atom = molecule->GetAtoms()[atom_id];
+				auto& atom = molecule->GetAtoms().at(atom_id);
 				char name = atom->short_name;
 				int serial = atom->serial;
-				vertex->color = Vertex::Color(name/256.0f, serial/16384.0f, 0);
-				vertex->normal = Vertex::Normal(nx, ny, nz);
-				vertex->position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
+				vertex.color = Vertex::Color(name/256.0f, serial/16384.0f, 0);
+				vertex.normal = Vertex::Normal(nx, ny, nz);
+				vertex.position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
 
-				vertices.push_back(move(vertex));
+				vertices.push_back(vertex);
 			}
 		}
 		infile.close();
@@ -352,6 +359,59 @@ void DrawMolecule::ComputeSurf() {
 		throw std::runtime_error("TODO: Implement surf");
 	}
 	surfComputed = true;
+}
+
+bool DrawMolecule::ComputeSurfIdx() {
+	cout << "Trying to open " << molecule->source_filename << ".tri.idx ...";
+	ifstream infile;
+	infile.open(molecule->source_filename + ".tri.idx");
+	if (!infile.fail()) {
+		cout << "success." << endl;
+
+		const Vector offset = molecule->GetOffset();
+		string line;
+
+		// Check file header
+		getline(infile, line);
+		if (line != "VERTICES")
+			throw std::runtime_error("Error parsing file");
+
+		// Read vertices
+		while (getline(infile, line)) {
+			if (line == "TRIANGLES")
+				break;
+			int id;
+			float x, y, z, nx, ny, nz;
+			if (7 != sscanf(line.c_str(), "%d %f %f %f %f %f %f", &id, &x, &y, &z, &nx, &ny, &nz))
+				throw std::runtime_error("Error reading .tri.idx vertices");
+
+			Vertex vertex;
+			vertex.color = Vertex::Color(0.8f, 0.3f, 0.0f); //TODO: ?? Unknown at this point
+			vertex.normal = Vertex::Normal(nx, ny, nz);
+			vertex.position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
+			vertices.push_back(vertex);
+		}
+
+		// Read indexed triangles
+		while (getline(infile, line)) {
+			int atom_id = stoi(line);
+			// push 3 indices
+			for (int i = 0; i < 3; i++) {
+				if (!getline(infile, line))
+					throw std::runtime_error("Error reading .tri.idx triangles");
+				indices.push_back(stoi(line));
+				//TODO: Save atom_id
+			}
+		}
+		infile.close();
+
+		cout << "Surf computed. Loaded " << vertices.size() << " vertices." << endl;
+		surfComputed = true;
+	}
+	else {
+		cout << "not found." << endl;
+	}
+	return surfComputed;
 }
 
 void DrawMolecule::ComputePockets() {

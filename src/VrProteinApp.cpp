@@ -65,13 +65,21 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			selectedMoleculeIdx(0),
 			isSimulating(true),
 			isCalculatingForces(false) {
+
+	/* Load widgets */
+	overlapWidget = unique_ptr<HudWidget>(new HudWidget("OverlapWidget", Vrui::getWidgetManager(), "Overlap"));
+	overlapWidget->setOptions(false, 0, 10, false, "%4.2f");
+
+	distanceWidget = unique_ptr<HudWidget>(new HudWidget("DistanceWidget", Vrui::getWidgetManager(), "Mean dist."));
+	distanceWidget->setOptions(false, 0, 5, false, "%4.2f");
+
 	/* load molecule data */
 	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
 	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
 
 	/* Move them away */
-	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
-	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point(10, 0, 0)));
+	drawMolecules.at(0)->SetState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
+	drawMolecules.at(1)->SetState(ONTransform::translateFromOriginTo(Point(10, 0, 0)));
 
 	/* Set the navigation transformation to show the entire scene: */
 	centerDisplay();
@@ -84,12 +92,6 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	settingsDialog = createSettingsDialog();
 	statisticsDialog = createStatisticsDialog();
 
-	overlapWidget = new HudWidget("OverlapWidget", Vrui::getWidgetManager(), "Overlap");
-	overlapWidget->setOptions(false, 0, 10, false, "%4.2f");
-
-	distanceWidget = new HudWidget("DistanceWidget", Vrui::getWidgetManager(), "Mean dist.");
-	distanceWidget->setOptions(false, 0, 5, false, "%4.2f");
-
 	/* Set up custom tools: */
 	SimulationControlTool::registerTool(*Vrui::getToolManager());
 	ExperimentControlTool::registerTool(*Vrui::getToolManager());
@@ -99,6 +101,8 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 
 	/* Initialize the frame time calculator: */
 	lastFrameTime = Vrui::getApplicationTime();
+
+	std::cout << "All loaded. Starting main loop." << std::endl;
 }
 
 void VrProteinApp::display(GLContextData& contextData) const {
@@ -163,16 +167,16 @@ void VrProteinApp::frame() {
 
 	if (isSimulating) {
 		// Calculate stuff
-		auto overlappingAmount = drawMolecules[0]->Intersects(*drawMolecules[1]);
-		simResult = simulator.step(*drawMolecules[0], *drawMolecules[1], isCalculatingForces);
+		auto overlappingAmount = drawMolecules.at(0)->Intersects(*drawMolecules.at(1));
+		simResult = simulator.step(*drawMolecules.at(0), *drawMolecules.at(1), isCalculatingForces);
 
 		// Apply force to molecule
 		if (isCalculatingForces) {
 			if (simResult.energy != 0)
-				drawMolecules[0]->Step(simResult.netForce * forceAttenuation,
+				drawMolecules.at(0)->Step(simResult.netForce * forceAttenuation,
 						simResult.netTorque * forceAttenuation, timeStep);
 			else
-				drawMolecules[0]->ResetForces();
+				drawMolecules.at(0)->ResetForces();
 		}
 
 		// Draw statistics (update only if dialog is visible)
@@ -185,7 +189,7 @@ void VrProteinApp::frame() {
 		}
 		// widgets
 		overlapWidget->setValue(overlappingAmount);
-		distanceWidget->setTitle("Dist. " + drawMolecules[1]->GetNameOfPocket(simResult.closestPocket));
+		distanceWidget->setTitle("Dist. " + drawMolecules.at(1)->GetNameOfPocket(simResult.closestPocket));
 		distanceWidget->setValue(simResult.meanPocketDist);
 	}
 	else {
@@ -202,7 +206,7 @@ void VrProteinApp::frame() {
 void VrProteinApp::debug() {
 	std::cout << "Debug:" << std::endl;
 	selectedMoleculeIdx = 1;
-	if (drawMolecules[1]->GetDrawStyle() == DrawStyle::Surf)
+	if (drawMolecules.at(1)->GetDrawStyle() == DrawStyle::Surf)
 		setDrawStyle(DrawStyle::Points);
 	else
 		setDrawStyle(DrawStyle::Surf);
@@ -212,34 +216,34 @@ void VrProteinApp::setupExperiment(int experimentId) {
 	std::cout << "Loading experiment " << experimentId << std::endl;
 	switch(experimentId) {
 	case 1:
-		drawMolecules[0] = LoadMolecule("1BU4/1BU4_2GP.pdb");
-		drawMolecules[1] = LoadMolecule("1BU4/1BU4.pdb");
+		drawMolecules.at(0) = LoadMolecule("1BU4/1BU4_2GP.pdb");
+		drawMolecules.at(1) = LoadMolecule("1BU4/1BU4.pdb");
 		break;
 	case 2:
-		drawMolecules[0] = LoadMolecule("1STP/1STP_BTN.pdb");
-		drawMolecules[1] = LoadMolecule("1STP/1STP.pdb");
+		drawMolecules.at(0) = LoadMolecule("1STP/1STP_BTN.pdb");
+		drawMolecules.at(1) = LoadMolecule("1STP/1STP.pdb");
 		break;
 	case 3:
-		drawMolecules[0] = LoadMolecule("3PTB/3PTB_BEN.pdb");
-		drawMolecules[1] = LoadMolecule("3PTB/3PTB.pdb");
+		drawMolecules.at(0) = LoadMolecule("3PTB/3PTB_BEN.pdb");
+		drawMolecules.at(1) = LoadMolecule("3PTB/3PTB.pdb");
 		break;
 	case 4:
-		drawMolecules[0] = LoadMolecule("3VGC/3VGC_SRB.pdb");
-		drawMolecules[1] = LoadMolecule("3VGC/3VGC.pdb");
+		drawMolecules.at(0) = LoadMolecule("3VGC/3VGC_SRB.pdb");
+		drawMolecules.at(1) = LoadMolecule("3VGC/3VGC.pdb");
 		break;
 	case 5:
-		drawMolecules[0] = LoadMolecule("1XIG/1XIG_XYL.pdb");
-		drawMolecules[1] = LoadMolecule("1XIG/1XIG.pdb");
+		drawMolecules.at(0) = LoadMolecule("1XIG/1XIG_XYL.pdb");
+		drawMolecules.at(1) = LoadMolecule("1XIG/1XIG.pdb");
 		break;
 	default:
 		throw std::runtime_error("Bad call to setupExperiment");
 	}
-	drawMolecules[0]->SetColorStyle(ColorStyle::CPK);
-	drawMolecules[1]->SetColorStyle(ColorStyle::Pockets);
-	drawMolecules[0]->SetDrawStyle(DrawStyle::Surf);
-	drawMolecules[1]->SetDrawStyle(DrawStyle::Surf);
-	drawMolecules[0]->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
-	drawMolecules[1]->SetState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
+	drawMolecules.at(0)->SetColorStyle(ColorStyle::CPK);
+	drawMolecules.at(1)->SetColorStyle(ColorStyle::Pockets);
+	drawMolecules.at(0)->SetDrawStyle(DrawStyle::Surf);
+	drawMolecules.at(1)->SetDrawStyle(DrawStyle::Surf);
+	drawMolecules.at(0)->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+	drawMolecules.at(1)->SetState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
 	centerDisplay();
 }
 
@@ -259,17 +263,17 @@ void VrProteinApp::saveSolution() {
 		/* Write to file if its opened: */
 		if (experimentFile != nullptr) {
 			auto message = TimeToString("** Solution saved at %H:%M:%S") + "\n";
-			message += "Ligand: " + drawMolecules[0]->GetMolecule().source_filename + "\n"
-					+ ONTransformToString(drawMolecules[0]->GetState());
-			message += "Protein: " + drawMolecules[1]->GetMolecule().source_filename + "\n"
-					+ ONTransformToString(drawMolecules[1]->GetState());
+			message += "Ligand: " + drawMolecules.at(0)->GetMolecule().source_filename + "\n"
+					+ ONTransformToString(drawMolecules.at(0)->GetState());
+			message += "Protein: " + drawMolecules.at(1)->GetMolecule().source_filename + "\n"
+					+ ONTransformToString(drawMolecules.at(1)->GetState());
 			if (isSimulating) {
 				message += "Pocket:\n";
 				message += "- Closest: " + std::to_string(simResult.closestPocket) + "\n"
 						+ "- Mean Pocket Dist: " + std::to_string(simResult.meanPocketDist) + "\n"
 						+ "- Energy: " + std::to_string(simResult.energy) + "\n"
 						+ "- Overlapping: "
-						+ std::to_string(drawMolecules[0]->Intersects(*drawMolecules[1])) + "\n";
+						+ std::to_string(drawMolecules.at(0)->Intersects(*drawMolecules.at(1))) + "\n";
 			}
 			else
 				std::cout << "WARNING: Simulation is OFF, pocket data not saved!" << std::endl;
@@ -332,12 +336,12 @@ PopupMenu* VrProteinApp::createMainMenu(void) {
 		auto _app = static_cast<VrProteinApp*>(app);
 		/* Hide or show HUD dialog based on toggle button state: */
 		if (static_cast<ToggleButton::ValueChangedCallbackData*>(cbData)->set) {
-			Vrui::popupPrimaryWidget(_app->overlapWidget);
-			Vrui::popupPrimaryWidget(_app->distanceWidget);
+			Vrui::popupPrimaryWidget(_app->overlapWidget.get());
+			Vrui::popupPrimaryWidget(_app->distanceWidget.get());
 		}
 		else {
-			Vrui::popdownPrimaryWidget(_app->overlapWidget);
-			Vrui::popdownPrimaryWidget(_app->distanceWidget);
+			Vrui::popdownPrimaryWidget(_app->overlapWidget.get());
+			Vrui::popdownPrimaryWidget(_app->distanceWidget.get());
 		}
 	}, this);
 
@@ -491,6 +495,11 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
  * Format is: [0: alanin.pdb, 1: BrH.pdb, ...] */
 std::vector<std::string> VrProteinApp::GetDropdownItemStrings() const {
 	auto items = std::vector<std::string>();
+	if (drawMolecules.size() == 0) {
+		std::cout << "Warning: No molecules loaded" << std::endl;
+		items.push_back("");
+	}
+
 	for (unsigned int i = 0; i < drawMolecules.size(); i++) {
 		items.push_back(std::to_string(i) + ": " + drawMolecules[i]->GetName());
 	}
@@ -520,7 +529,7 @@ void VrProteinApp::toggleForces(bool calculateForces, bool refreshUI /* = true *
 	if (calculateForces && !isSimulating)
 		toggleSimulation(true);
 	if (!calculateForces)
-		drawMolecules[0]->ResetForces();
+		drawMolecules.at(0)->ResetForces();
 	if (refreshUI) {
 		calculateForcesBtn->setToggle(calculateForces);
 	}

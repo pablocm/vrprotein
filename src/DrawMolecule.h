@@ -55,6 +55,8 @@ public:
 
 	/* Public Methods: */
 	DrawMolecule(std::unique_ptr<Molecule> m);
+	DrawMolecule(const DrawMolecule&) = delete;				// delete copy ctor
+	DrawMolecule& operator=(DrawMolecule const&) = delete; 	// delete assignment
 	bool Intersects(const Ray& r) const;
 	bool Intersects(const Point& p) const;
 	Scalar Intersects(const DrawMolecule& other) const;
@@ -80,7 +82,8 @@ public:
 	std::string GetNameOfPocket(int pocket) const;
 private:
 	std::unique_ptr<Molecule> molecule;
-	std::vector<std::unique_ptr<Vertex>> vertices;
+	std::vector<Vertex> vertices;
+	std::vector<int> indices;
 	std::unordered_map<int, int> atomToPocket;					// <Atom Serial, pocket ID>
 	std::unordered_map<int, std::vector<int>> pocketToAtoms;	// <pocket ID, atom serials list>
 	std::unordered_map<int, std::vector<Sphere>> pocketToSpheres;//<pocket ID, Sphere>
@@ -95,6 +98,7 @@ private:
 	ColorStyle colorStyle;
 	bool locked;	// currently locked by a dragger
 
+	bool ComputeSurfIdx();
 	void DrawPoints(GLContextData& contextData) const;
 	void DrawSurf(GLContextData& contextData) const;
 	DrawMolecule::Color AtomColor(char short_name) const;
