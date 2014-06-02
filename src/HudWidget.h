@@ -8,6 +8,7 @@
 #ifndef HUDWIDGET_H_
 #define HUDWIDGET_H_
 
+#include <memory>
 #include <string>
 #include <GLMotif/Draggable.h>
 #include <GLMotif/Widget.h>
@@ -29,7 +30,7 @@ public:
 	typedef GLColor<GLfloat, 4> Color;
 
 	/* Methods: */
-	HudWidget(const char* sName, GLMotif::WidgetManager* sManager, std::string sTitleString);
+	HudWidget(const char* sName, GLMotif::WidgetManager* sManager, const char* sTitleString);
 	virtual ~HudWidget();
 	void setTitle(std::string newTitle);
 	void setValue(Scalar newValue);
@@ -50,10 +51,10 @@ public:
 private:
 	/* Elements: */
 	GLMotif::WidgetManager* manager; // Pointer to the widget manager
-	std::string titleString;
-	GLLabel* titleLabel; // Label to display the title
-	Scalar currentValue; // Current display value
-	GLLabel* valueLabel; // Label to display the current value
+	std::string titleString;			 // Current title string
+	std::unique_ptr<GLLabel> titleLabel; // Label to display the title
+	Scalar currentValue; 				 // Current display value
+	std::unique_ptr<GLLabel> valueLabel; // Label to display the current value
 	bool showMiddleLine;
 	bool useArctan;
 	Scalar minValue;

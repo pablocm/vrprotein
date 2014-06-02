@@ -39,9 +39,9 @@ ETCINSTALLDIR = $(INSTALLDIR)/$(CONFIGDIR)
 # Specify additional compiler and linker flags
 ########################################################################
 
-CFLAGS += -Wall -pedantic -std=c++0x
+CFLAGS += -Wall -Wextra -Wno-unused-parameter -pedantic -std=c++0x
 CFLAGS += -g -rdynamic	#DEBUG: Compile with trace symbols
-#  -Wextra
+#  -Wextra -Weffc++
 
 ########################################################################
 # List common packages used by all components of this project

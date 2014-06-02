@@ -66,13 +66,6 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			isSimulating(true),
 			isCalculatingForces(false) {
 
-	/* Load widgets */
-	overlapWidget = unique_ptr<HudWidget>(new HudWidget("OverlapWidget", Vrui::getWidgetManager(), "Overlap"));
-	overlapWidget->setOptions(false, 0, 10, false, "%4.2f");
-
-	distanceWidget = unique_ptr<HudWidget>(new HudWidget("DistanceWidget", Vrui::getWidgetManager(), "Mean dist."));
-	distanceWidget->setOptions(false, 0, 5, false, "%4.2f");
-
 	/* load molecule data */
 	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
 	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
@@ -91,6 +84,15 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	Vrui::setMainMenu(mainMenu);
 	settingsDialog = createSettingsDialog();
 	statisticsDialog = createStatisticsDialog();
+
+	/* Load widgets */
+	overlapWidget = unique_ptr<HudWidget>(
+			new HudWidget("OverlapWidget", Vrui::getWidgetManager(), "Overlap"));
+	overlapWidget->setOptions(false, 0, 10, false, "%4.2f");
+
+	distanceWidget = unique_ptr<HudWidget>(
+			new HudWidget("DistanceWidget", Vrui::getWidgetManager(), "Mean dist."));
+	distanceWidget->setOptions(false, 0, 5, false, "%4.2f");
 
 	/* Set up custom tools: */
 	SimulationControlTool::registerTool(*Vrui::getToolManager());

@@ -17,10 +17,10 @@
 
 namespace VrProtein {
 
-HudWidget::HudWidget(const char* sName, GLMotif::WidgetManager* sManager, std::string sTitleString) :
+HudWidget::HudWidget(const char* sName, GLMotif::WidgetManager* sManager, const char* sTitleString) :
 			GLMotif::Widget(sName, 0, false),
 			manager(sManager),
-			titleString(sTitleString) {
+			titleString(std::string(sTitleString)) {
 	/* Set widget parameters: */
 	setBorderWidth(0.0f);
 	setBorderType(GLMotif::Widget::PLAIN);
@@ -37,12 +37,12 @@ HudWidget::HudWidget(const char* sName, GLMotif::WidgetManager* sManager, std::s
 	setForegroundColor(fgColor);
 
 	/* Create the initial title label */
-	titleLabel = new GLLabel(titleString.c_str(), *Vrui::getUiFont());
+	titleLabel = std::unique_ptr<GLLabel>(new GLLabel(sTitleString, *Vrui::getUiFont()));
 	titleLabel->setBackground(bgColor);
 	titleLabel->setForeground(fgColor);
 
 	/* Create the initial value label */
-	valueLabel = new GLLabel("---", *Vrui::getUiFont());
+	valueLabel = std::unique_ptr<GLLabel>(new GLLabel("---", *Vrui::getUiFont()));
 	valueLabel->setBackground(bgColor);
 	valueLabel->setForeground(fgColor);
 
@@ -56,9 +56,6 @@ HudWidget::HudWidget(const char* sName, GLMotif::WidgetManager* sManager, std::s
 HudWidget::~HudWidget(void) {
 	/* Pop down the widget: */
 	manager->popdownWidget(this);
-
-	/* Delete the length and scale labels: */
-	delete valueLabel;
 
 	/* Unmanage the widget itself: */
 	manager->unmanageWidget(this);
@@ -92,13 +89,13 @@ void HudWidget::setOptions(bool useArcTan, Scalar minValue, Scalar maxValue, boo
 GLMotif::Vector HudWidget::calcNaturalSize() const {
 	GLMotif::Vector result(0, Vrui::getUiFont()->getTextHeight() * 3.0f, 0.0f);
 
-	if (titleLabel != nullptr) {
+	if (titleLabel.get() != nullptr) {
 		/* Adjust for the label size: */
 		const GLLabel::Box::Vector& labelSize = titleLabel->getLabelSize();
 		if (result[0] < labelSize[0])
 			result[0] = labelSize[0];
 	}
-	if (valueLabel != nullptr) {
+	if (valueLabel.get() != nullptr) {
 		/* Adjust for the label size: */
 		const GLLabel::Box::Vector& labelSize = valueLabel->getLabelSize();
 		if (result[0] < labelSize[0])
@@ -113,7 +110,7 @@ void HudWidget::resize(const GLMotif::Box& newExterior) {
 	/* Resize the parent class widget: */
 	GLMotif::Widget::resize(newExterior);
 
-	if (titleLabel != nullptr) {
+	if (titleLabel.get() != nullptr) {
 		/* Reposition the label: */
 		const GLLabel::Box::Vector& labelSize = titleLabel->getLabelSize();
 		GLLabel::Box::Vector labelPos;
@@ -122,7 +119,7 @@ void HudWidget::resize(const GLMotif::Box& newExterior) {
 		labelPos[2] = 0.0f;
 		titleLabel->setOrigin(labelPos);
 	}
-	if (valueLabel != nullptr) {
+	if (valueLabel.get() != nullptr) {
 		/* Reposition the label: */
 		const GLLabel::Box::Vector& labelSize = valueLabel->getLabelSize();
 		GLLabel::Box::Vector labelPos;
