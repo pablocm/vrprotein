@@ -77,13 +77,13 @@ void HudWidget::setValue(Scalar newValue) {
 	}
 }
 
-void HudWidget::setOptions(bool useArcTan, Scalar minValue, Scalar maxValue, bool showMiddleLine,
-		std::string valueFormat) {
-	this->useArctan = useArcTan;
-	this->minValue = minValue;
-	this->maxValue = maxValue;
-	this->showMiddleLine = showMiddleLine;
-	this->valueFormat = valueFormat;
+void HudWidget::setOptions(bool newUseArcTan, Scalar newMinValue, Scalar newMaxValue,
+		bool newShowMiddleLine, std::string newValueFormat) {
+	useArctan = newUseArcTan;
+	minValue = newMinValue;
+	maxValue = newMaxValue;
+	showMiddleLine = newShowMiddleLine;
+	valueFormat = newValueFormat;
 }
 
 GLMotif::Vector HudWidget::calcNaturalSize() const {

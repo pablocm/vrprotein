@@ -73,7 +73,8 @@ static inline std::string trim(const std::string &s2) {
  * http://stackoverflow.com/a/8098080
  */
 static inline std::string string_format(const std::string fmt_str, ...) {
-    int final_n, n = ((int)fmt_str.size()) * 2; /* reserve 2 times as much as the length of the fmt_str */
+	/* reserve 2 times as much as the length of the fmt_str */
+    int final_n, n = (static_cast<int>(fmt_str.size())) * 2;
     std::string str;
     std::unique_ptr<char[]> formatted;
     va_list ap;

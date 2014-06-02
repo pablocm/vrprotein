@@ -40,8 +40,17 @@ ETCINSTALLDIR = $(INSTALLDIR)/$(CONFIGDIR)
 ########################################################################
 
 CFLAGS += -Wall -Wextra -Wno-unused-parameter -pedantic -std=c++0x
-CFLAGS += -g -rdynamic	#DEBUG: Compile with trace symbols
-#  -Wextra -Weffc++
+#DEBUG: Compile with trace symbols
+CFLAGS += -g -rdynamic
+# More warnings:
+CFLAGS += -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization \
+          -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations \
+          -Wmissing-include-dirs -Wnoexcept -Wold-style-cast \
+          -Woverloaded-virtual -Wredundant-decls -Wshadow -Wstrict-null-sentinel \
+          -Wstrict-overflow=5 -Wswitch-default -Wundef \
+          -Wmissing-field-initializers \
+          -Wpointer-arith -Wwrite-strings
+# -Wzero-as-null-pointer-constant (disabled; has false positives)
 
 ########################################################################
 # List common packages used by all components of this project

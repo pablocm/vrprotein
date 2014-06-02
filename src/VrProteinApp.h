@@ -85,7 +85,7 @@ private:
 	// Tool items
 	std::vector<std::unique_ptr<MoleculeDragger>> moleculeDraggers;
 	// UI Items
-	GLMotif::PopupMenu* mainMenu; // The program's main menu
+	GLMotif::PopupMenu* mainMenuPopup; // The program's main menu
 	GLMotif::ToggleButton* showSettingsDialogToggle;
 	GLMotif::ToggleButton* showStatisticsDialogToggle;
 	GLMotif::ToggleButton* showHudWidgetToggle;
@@ -104,9 +104,9 @@ private:
 	GLMotif::TextField* meanDistanceTextField;	// Current value for mean distance to pocket
 	GLMotif::TextField* frameRateTextField;		// Current value for frame rate
 	// UI Constructors
-	GLMotif::PopupMenu* createMainMenu(void);
-	GLMotif::PopupWindow* createSettingsDialog(void);
-	GLMotif::PopupWindow* createStatisticsDialog(void);
+	void createMainMenu(void);
+	void createSettingsDialog(void);
+	void createStatisticsDialog(void);
 	// UI Callbacks
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
 	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);

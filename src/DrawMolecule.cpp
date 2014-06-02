@@ -80,8 +80,8 @@ bool DrawMolecule::Intersects(const Ray& r) const {
 	auto transform = GetState();
 	Sphere sphere(Point::origin, 0);  // Test sphere
 	for (const auto& atom : molecule->GetAtoms()) {
-		auto position = transform.transform(atom->position);
-		sphere.setCenter(position);
+		auto pos = transform.transform(atom->position);
+		sphere.setCenter(pos);
 		sphere.setRadius(atom->radius * 1.5);
 
 		auto hitResult = sphere.intersectRay(r);
@@ -95,9 +95,9 @@ bool DrawMolecule::Intersects(const Ray& r) const {
 bool DrawMolecule::Intersects(const Point& p) const {
 	auto transform = GetState();
 	for (const auto& atom : molecule->GetAtoms()) {
-		auto position = transform.transform(atom->position);
+		auto pos = transform.transform(atom->position);
 
-		auto dist2 = Geometry::sqrDist(p, position);
+		auto dist2 = Geometry::sqrDist(p, pos);
 		if (dist2 <= Math::sqr(atom->radius * 1.5))
 			return true;
 	}
@@ -110,11 +110,11 @@ Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
 	auto transform = GetState();
 	auto otherTransform = other.GetState();
 	for (const auto& atom : molecule->GetAtoms()) {
-		auto position = transform.transform(atom->position);
+		auto pos = transform.transform(atom->position);
 
 		for(const auto& otherAtom : other.molecule->GetAtoms()) {
 			auto otherPosition = otherTransform.transform(otherAtom->position);
-			auto dist2 = Geometry::sqrDist(position, otherPosition);
+			auto dist2 = Geometry::sqrDist(pos, otherPosition);
 			auto mindist2 = Math::sqr(atom->radius + otherAtom->radius);
 			//if (mindist2 - dist2 > intersectionAmount2) { // TODO: Check math
 			//	intersectionAmount2 = mindist2 - dist2;
@@ -209,6 +209,8 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 		break;
 	case DrawStyle::None:
 		throw std::runtime_error("DrawStyle::None is not supported");
+	default:
+		throw std::runtime_error("Unknown DrawStyle");
 	}
 
 	/* Draw Pocket centroids:
@@ -294,12 +296,12 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 			for (const auto& v : vertices) {
 				if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
 					// The atom info is encoded inside the color components (i know...)
-					char name = (char)(v.color[0] * 256.0f);
+					char name = static_cast<char>(v.color[0] * 256.0f);
 					auto atomColor = AtomColor(name);
 					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
 				}
 				else if (colorStyle == ColorStyle::Pockets) {
-					int serial = (int)(v.color[1] * 16384.0f);
+					int serial = static_cast<int>(v.color[1] * 16384.0f);
 					auto atomColor = AtomColor(serial);
 					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
 				}
@@ -473,8 +475,9 @@ DrawMolecule::Color DrawMolecule::AtomColor(char short_name) const {
 			return Color(0.8f, 0.8f, 0.6f); // yellow
 		case 'O':
 			return Color(0.5f, 0.3f, 0.8f); // blue
+		default:
+			return Color(0.9f, 0.9f, 0.9f); // white
 		}
-		return Color(0.9f, 0.9f, 0.9f); // white
 	}
 	if (colorStyle == ColorStyle::CPK) {
 		// CPK coloring (http://en.wikipedia.org/wiki/CPK_coloring)
@@ -489,7 +492,8 @@ DrawMolecule::Color DrawMolecule::AtomColor(char short_name) const {
 			return Color(0.94f, 0, 0); // red
 		case 'S':
 			return Color(1, 200/255.0f, 50/255.0f); // orange
-		return Color(221/255.0f, 119/255.0f, 1); // pink
+		default:
+			return Color(221/255.0f, 119/255.0f, 1); // pink
 		}
 	}
 	// default for None
@@ -515,9 +519,10 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 			return Color(1.0f, 0.3f, 0.3f);
 		case 5:
 			return Color(1.0f, 0.3f, 1.0f);
+		default:
+			return Color(0.7f, 0.7f, 0.7f);
 		}
 		//return Color(221/255.0f, 119/255.0f, 1); // pink
-		return Color(0.7f, 0.7f, 0.7f);
 	}
 	// default
 	return Color(0.9f, 0.9f, 0.9f); // white
@@ -539,8 +544,9 @@ std::string DrawMolecule::GetNameOfPocket(int pocket) const {
 		return "red";
 	case 5:
 		return "pink";
+	default:
+		return "??";
 	}
-	return "??";
 }
 
 const Molecule& DrawMolecule::GetMolecule() const {
@@ -555,9 +561,9 @@ ColorStyle DrawMolecule::GetColorStyle() const {
 	return colorStyle;
 }
 
-void DrawMolecule::SetColorStyle(ColorStyle colorStyle) {
-	this->colorStyle = colorStyle;
-	if (colorStyle == ColorStyle::Pockets) {
+void DrawMolecule::SetColorStyle(ColorStyle newColorStyle) {
+	this->colorStyle = newColorStyle;
+	if (newColorStyle == ColorStyle::Pockets) {
 		ComputePockets();
 	}
 }
@@ -566,9 +572,9 @@ DrawStyle DrawMolecule::GetDrawStyle() const {
 	return style;
 }
 
-void DrawMolecule::SetDrawStyle(DrawStyle style) {
-	this->style = style;
-	if (style == DrawStyle::Surf) {
+void DrawMolecule::SetDrawStyle(DrawStyle newStyle) {
+	this->style = newStyle;
+	if (newStyle == DrawStyle::Surf) {
 		ComputeSurf();
 	}
 }

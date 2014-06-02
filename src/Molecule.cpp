@@ -28,8 +28,8 @@ const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
 const unique_ptr<MolAtom>& Molecule::FindBySerial(int serial) const {
 	// Assumes atoms were inserted in serial order
 	auto it = std::lower_bound(atoms.begin(), atoms.end(), serial,
-			[](const unique_ptr<MolAtom>& a, const int serial) {
-				return a->serial < serial;
+			[](const unique_ptr<MolAtom>& a, const int s) {
+				return a->serial < s;
 			});
 
 	const unique_ptr<MolAtom>& result = (it != atoms.end()) ? *it : atoms[0];

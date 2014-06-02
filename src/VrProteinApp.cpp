@@ -80,10 +80,10 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	Vrui::getCoordinateManager()->setUnit(Geometry::LinearUnit(Geometry::LinearUnit::ANGSTROM, 1));
 
 	/* Create the program's user interface: */
-	mainMenu = createMainMenu();
-	Vrui::setMainMenu(mainMenu);
-	settingsDialog = createSettingsDialog();
-	statisticsDialog = createStatisticsDialog();
+	createMainMenu();
+	Vrui::setMainMenu(mainMenuPopup);
+	createSettingsDialog();
+	createStatisticsDialog();
 
 	/* Load widgets */
 	overlapWidget = unique_ptr<HudWidget>(
@@ -187,7 +187,7 @@ void VrProteinApp::frame() {
 			overlappingTextField->setValue(overlappingAmount);
 			closestPocketTextField->setValue(simResult.closestPocket);
 			meanDistanceTextField->setValue(simResult.meanPocketDist);
-			frameRateTextField->setValue((int)(1/timeStep));
+			frameRateTextField->setValue(static_cast<int>(1/timeStep));
 		}
 		// widgets
 		overlapWidget->setValue(overlappingAmount);
@@ -200,7 +200,7 @@ void VrProteinApp::frame() {
 			overlappingTextField->setString("---");
 			closestPocketTextField->setString("---");
 			meanDistanceTextField->setString("---");
-			frameRateTextField->setValue((int)(1/timeStep));
+			frameRateTextField->setValue(static_cast<int>(1/timeStep));
 		}
 	}
 }
@@ -300,8 +300,8 @@ std::string VrProteinApp::ONTransformToString(const ONTransform& transform) cons
  * UI methods:
  **************/
 
-PopupMenu* VrProteinApp::createMainMenu(void) {
-	auto mainMenuPopup = new PopupMenu("MainMenuPopup", Vrui::getWidgetManager());
+void VrProteinApp::createMainMenu(void) {
+	mainMenuPopup = new PopupMenu("MainMenuPopup", Vrui::getWidgetManager());
 	mainMenuPopup->setTitle("VR Protein App");
 
 	auto mainMenu = new Menu("MainMenu", mainMenuPopup, false);
@@ -348,11 +348,9 @@ PopupMenu* VrProteinApp::createMainMenu(void) {
 	}, this);
 
 	mainMenu->manageChild();
-
-	return mainMenuPopup;
 }
 
-PopupWindow* VrProteinApp::createSettingsDialog(void) {
+void VrProteinApp::createSettingsDialog(void) {
 	settingsDialog = new PopupWindow("SettingsDialog", Vrui::getWidgetManager(), "Settings Dialog");
 	settingsDialog->setCloseButton(true);
 	settingsDialog->getCloseCallbacks().add([](Misc::CallbackData* cbData, void* app) {
@@ -426,11 +424,9 @@ PopupWindow* VrProteinApp::createSettingsDialog(void) {
 	colorStylePicker->manageChild();
 
 	settings->manageChild();
-
-	return settingsDialog;
 }
 
-PopupWindow* VrProteinApp::createStatisticsDialog(void) {
+void VrProteinApp::createStatisticsDialog(void) {
 	statisticsDialog = new PopupWindow("StatisticsDialog", Vrui::getWidgetManager(),
 			"Simulation Statistics");
 	statisticsDialog->setCloseButton(true);
@@ -489,8 +485,6 @@ PopupWindow* VrProteinApp::createStatisticsDialog(void) {
 	}, this);
 
 	statistics->manageChild();
-
-	return statisticsDialog;
 }
 
 /* Returns a list of currently loaded molecule names and indexes.
