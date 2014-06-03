@@ -39,9 +39,8 @@ public:
 	public:
 		// DrawStyle: Surf
 		bool hasVertexBufferObjectExtension; // Flag if the local OpenGL supports the ARB vertex buffer object extension
-		GLuint faceVertexBufferObjectIDs[6]; // Array of vertex buffer object IDs for the Jell-O faces
-		GLuint faceIndexBufferObjectIDs[6]; // Array of index buffer object IDs for the Jell-O faces
-		unsigned int vertexDataVersion; // Version number of the face data in the vertex buffers
+		GLuint faceVertexBufferObjectIDs[1]; // Array of vertex buffer object IDs
+		GLuint faceIndexBufferObjectIDs[1]; // Array of index buffer object IDs
 
 		GLuint displayListId;  // The display List for the molecule
 		DrawStyle displayListDrawStyle;  // Selected style for current display list
@@ -83,7 +82,8 @@ public:
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<Vertex> vertices;
-	std::vector<int> indices;
+	std::vector<GLuint> indices;
+	std::unordered_map<int, int> vertexToAtom;					// <vertex id, Atom Serial>
 	std::unordered_map<int, int> atomToPocket;					// <Atom Serial, pocket ID>
 	std::unordered_map<int, std::vector<int>> pocketToAtoms;	// <pocket ID, atom serials list>
 	std::unordered_map<int, std::vector<Sphere>> pocketToSpheres;//<pocket ID, Sphere>
@@ -93,6 +93,7 @@ private:
 	Vector velocity;
 	Vector angularVelocity;
 	bool surfComputed;
+	bool surfUsesIndices;
 	bool pocketsComputed;
 	DrawStyle style;
 	ColorStyle colorStyle;

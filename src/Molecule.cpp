@@ -6,6 +6,7 @@
  */
 
 #include <algorithm>
+#include <string>
 #include "Molecule.h"
 
 using namespace std;
@@ -36,7 +37,7 @@ const unique_ptr<MolAtom>& Molecule::FindBySerial(int serial) const {
 
 	// DEBUG
 	if (result->serial != serial)
-		throw std::runtime_error("FindBySerial failed.");
+		throw std::runtime_error(std::string("FindBySerial failed for: ") + std::to_string(serial));
 	return result;
 }
 

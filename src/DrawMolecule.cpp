@@ -27,16 +27,15 @@ Methods of class DrawMolecule::DataItem:
 ****************************************/
 
 DrawMolecule::DataItem::DataItem() :
-			hasVertexBufferObjectExtension(GLARBVertexBufferObject::isSupported()),
-			vertexDataVersion(0) {
+			hasVertexBufferObjectExtension(GLARBVertexBufferObject::isSupported()) {
 	if (hasVertexBufferObjectExtension) {
 		std::cout << "Video card supports GL_ARB_vertex_buffer_object." << std::endl;
 		/* Initialize the vertex buffer object extension: */
 		GLARBVertexBufferObject::initExtension();
 
 		/* Create the vertex and index buffer objects: */
-		glGenBuffersARB(6, faceVertexBufferObjectIDs);
-		glGenBuffersARB(6, faceIndexBufferObjectIDs);
+		glGenBuffersARB(1, faceVertexBufferObjectIDs);
+		glGenBuffersARB(1, faceIndexBufferObjectIDs);
 	}
 	else {
 		std::cout << "Video card does NOT support GL_ARB_vertex_buffer_object." << std::endl;
@@ -68,6 +67,7 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	molecule->FixCenterOffset();
 	style = DrawStyle::Points;
 	surfComputed = false;
+	surfUsesIndices = false;
 	pocketsComputed = false;
 	colorStyle = ColorStyle::CPK;
 	locked = false;
@@ -277,39 +277,84 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 	/* Get the OpenGL-dependent application data from the GLContextData object: */
 	DataItem* dataItem = contextData.retrieveDataItem<DataItem>(this);
 
-	if (dataItem->displayListDrawStyle == DrawStyle::Surf
-			&& dataItem->displayListColorStyle == colorStyle) {
-		/* Call the display list */
-		glCallList(dataItem->displayListId);
+	if (surfUsesIndices) {
+		glPushAttrib(GL_ENABLE_BIT);
+		glEnable(GL_COLOR_MATERIAL);
+		GLVertexArrayParts::enable(Vertex::getPartsMask());
+		const GLuint* indexPtr;
+
+		if (dataItem->hasVertexBufferObjectExtension) {
+			indexPtr = 0;
+			/* Bind the face's index buffer object: */
+			glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, dataItem->faceIndexBufferObjectIDs[0]);
+			/* Bind the face's vertex buffer object: */
+			glBindBufferARB(GL_ARRAY_BUFFER_ARB, dataItem->faceVertexBufferObjectIDs[0]);
+			/* Check if we need to upload data: */
+			if (dataItem->displayListDrawStyle != DrawStyle::Surf
+					|| dataItem->displayListColorStyle != colorStyle) {
+				//std::cout << "Updating VBO" << std::endl;
+				dataItem->displayListDrawStyle = DrawStyle::Surf;
+				dataItem->displayListColorStyle = colorStyle;
+				/* Upload new vertex & index data: */
+				glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, indices.size() * sizeof(GLuint),
+						&indices[0], GL_STATIC_DRAW_ARB);
+				glBufferDataARB(GL_ARRAY_BUFFER_ARB, vertices.size() * sizeof(Vertex), &vertices[0],
+						GL_STATIC_DRAW_ARB);
+			}
+			glVertexPointer(static_cast<const Vertex*>(0));
+		}
+		else {
+			/* Fall back to using regular vertex arrays (ouch): */
+			indexPtr = &indices[0];
+			glVertexPointer(&vertices[0]);
+		}
+
+		/* Render the surface a sequence of triangles: */
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, indexPtr);
+
+		if (dataItem->hasVertexBufferObjectExtension) {
+			/* Unbind all buffers: */
+			glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+			glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+		}
+		GLVertexArrayParts::disable(Vertex::getPartsMask());
+		glPopAttrib();
 	}
 	else {
-		glDeleteLists(dataItem->displayListId, 1);
-		dataItem->displayListDrawStyle = DrawStyle::Surf;
-		dataItem->displayListColorStyle = colorStyle;
-
-		/* Compile and execute a new display list */
-		//std::cout << "Compiling new display list" << std::endl;
-		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
-		{
-			glBegin(GL_TRIANGLES);
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
-			for (const auto& v : vertices) {
-				if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
-					// The atom info is encoded inside the color components (i know...)
-					char name = static_cast<char>(v.color[0] * 256.0f);
-					auto atomColor = AtomColor(name);
-					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
-				}
-				else if (colorStyle == ColorStyle::Pockets) {
-					int serial = static_cast<int>(v.color[1] * 16384.0f);
-					auto atomColor = AtomColor(serial);
-					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
-				}
-				glVertex(v);
-			}
-			glEnd();
+		if (dataItem->displayListDrawStyle == DrawStyle::Surf
+				&& dataItem->displayListColorStyle == colorStyle) {
+			/* Call the display list */
+			glCallList(dataItem->displayListId);
 		}
-		glEndList();
+		else {
+			glDeleteLists(dataItem->displayListId, 1);
+			dataItem->displayListDrawStyle = DrawStyle::Surf;
+			dataItem->displayListColorStyle = colorStyle;
+
+			/* Compile and execute a new display list */
+			//std::cout << "Compiling new display list" << std::endl;
+			glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
+			{
+				glBegin(GL_TRIANGLES);
+				glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
+				for (const auto& v : vertices) {
+					if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
+						// The atom info is encoded inside the color components (i know...)
+						char name = static_cast<char>(v.color[0] * 256.0f);
+						auto atomColor = AtomColor(name);
+						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
+					}
+					else if (colorStyle == ColorStyle::Pockets) {
+						int serial = static_cast<int>(v.color[1] * 16384.0f);
+						auto atomColor = AtomColor(serial);
+						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
+					}
+					glVertex(v);
+				}
+				glEnd();
+			}
+			glEndList();
+		}
 	}
 }
 
@@ -379,20 +424,21 @@ bool DrawMolecule::ComputeSurfIdx() {
 			throw std::runtime_error("Error parsing file");
 
 		// Read vertices
-		while (getline(infile, line)) {
-			if (line == "TRIANGLES")
-				break;
+		while (getline(infile, line) && line != "TRIANGLES") {
 			int id;
 			float x, y, z, nx, ny, nz;
 			if (7 != sscanf(line.c_str(), "%d %f %f %f %f %f %f", &id, &x, &y, &z, &nx, &ny, &nz))
 				throw std::runtime_error("Error reading .tri.idx vertices");
 
 			Vertex vertex;
-			vertex.color = Vertex::Color(0.8f, 0.3f, 0.0f); //TODO: ?? Unknown at this point
+			vertex.color = Vertex::Color(0.8f, 0.6f, 0.0f); //TODO: ?? Unknown at this point
 			vertex.normal = Vertex::Normal(nx, ny, nz);
 			vertex.position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
 			vertices.push_back(vertex);
 		}
+
+		if (line != "TRIANGLES")
+			throw std::runtime_error("Error parsing file");
 
 		// Read indexed triangles
 		while (getline(infile, line)) {
@@ -401,14 +447,17 @@ bool DrawMolecule::ComputeSurfIdx() {
 			for (int i = 0; i < 3; i++) {
 				if (!getline(infile, line))
 					throw std::runtime_error("Error reading .tri.idx triangles");
-				indices.push_back(stoi(line));
-				//TODO: Save atom_id
+				int vIndex = stoi(line);
+				indices.push_back(vIndex);
+				vertexToAtom[vIndex] = atom_id + 1;	// TODO: Will overwrite id for shared vertices
 			}
 		}
 		infile.close();
 
-		cout << "Surf computed. Loaded " << vertices.size() << " vertices." << endl;
+		cout << "Surf computed. Vertices: " << vertices.size();
+		cout << "; Indices: " << indices.size() << endl;
 		surfComputed = true;
+		surfUsesIndices = true;
 	}
 	else {
 		cout << "not found." << endl;
@@ -502,7 +551,8 @@ DrawMolecule::Color DrawMolecule::AtomColor(char short_name) const {
 
 DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 	if (colorStyle != ColorStyle::Pockets)
-		throw std::runtime_error("Bad call to DrawMolecule::AtomColor");
+		//throw std::runtime_error("Bad call to DrawMolecule::AtomColor");
+		return AtomColor(molecule->FindBySerial(serial)->short_name);
 
 	auto it = atomToPocket.find(serial);
 	if (it != atomToPocket.end()) {
@@ -562,9 +612,34 @@ ColorStyle DrawMolecule::GetColorStyle() const {
 }
 
 void DrawMolecule::SetColorStyle(ColorStyle newColorStyle) {
-	this->colorStyle = newColorStyle;
-	if (newColorStyle == ColorStyle::Pockets) {
+	if (colorStyle == newColorStyle)
+		return;
+
+	colorStyle = newColorStyle;
+	if (colorStyle == ColorStyle::Pockets) {
 		ComputePockets();
+	}
+
+	// Update vertices
+	if (surfComputed && surfUsesIndices) {
+		switch(colorStyle) {
+		case ColorStyle::AnaglyphFriendly:
+		case ColorStyle::CPK:
+		case ColorStyle::Pockets:
+			for (unsigned int i = 0; i < vertices.size(); i++) {
+				vertices[i].color = AtomColor(vertexToAtom.at(i));
+			}
+			break;
+		case ColorStyle::None:
+			for (auto& v : vertices) {
+				v.color[0] = 0.9f;
+				v.color[1] = 0.9f;
+				v.color[2] = 0.9f;
+			}
+			break;
+		default:
+			throw std::runtime_error("Unknown colorStyle");
+		}
 	}
 }
 
