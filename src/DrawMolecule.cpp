@@ -431,7 +431,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 				throw std::runtime_error("Error reading .tri.idx vertices");
 
 			Vertex vertex;
-			vertex.color = Vertex::Color(0.8f, 0.6f, 0.0f); //TODO: ?? Unknown at this point
+			//vertex.color = Vertex::Color(0.8f, 0.6f, 0.0f); // Unknown at this point
 			vertex.normal = Vertex::Normal(nx, ny, nz);
 			vertex.position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
 			vertices.push_back(vertex);
@@ -458,6 +458,9 @@ bool DrawMolecule::ComputeSurfIdx() {
 		cout << "; Indices: " << indices.size() << endl;
 		surfComputed = true;
 		surfUsesIndices = true;
+
+		// Colorize vertices
+		UpdateVerticesColors();
 	}
 	else {
 		cout << "not found." << endl;
@@ -506,7 +509,6 @@ void DrawMolecule::ComputePockets() {
 	}
 	else {
 		cout << "not found." << endl;
-		//throw std::runtime_error("TODO: Implement pocket");
 		cout << "Warning: No pockets loaded for molecule." << std::endl;
 	}
 	pocketsComputed = true;
@@ -619,8 +621,21 @@ void DrawMolecule::SetColorStyle(ColorStyle newColorStyle) {
 	if (colorStyle == ColorStyle::Pockets) {
 		ComputePockets();
 	}
+	UpdateVerticesColors();
+}
 
-	// Update vertices
+DrawStyle DrawMolecule::GetDrawStyle() const {
+	return style;
+}
+
+void DrawMolecule::SetDrawStyle(DrawStyle newStyle) {
+	style = newStyle;
+	if (newStyle == DrawStyle::Surf) {
+		ComputeSurf();
+	}
+}
+
+void DrawMolecule::UpdateVerticesColors() {
 	if (surfComputed && surfUsesIndices) {
 		switch(colorStyle) {
 		case ColorStyle::AnaglyphFriendly:
@@ -640,17 +655,6 @@ void DrawMolecule::SetColorStyle(ColorStyle newColorStyle) {
 		default:
 			throw std::runtime_error("Unknown colorStyle");
 		}
-	}
-}
-
-DrawStyle DrawMolecule::GetDrawStyle() const {
-	return style;
-}
-
-void DrawMolecule::SetDrawStyle(DrawStyle newStyle) {
-	this->style = newStyle;
-	if (newStyle == DrawStyle::Surf) {
-		ComputeSurf();
 	}
 }
 

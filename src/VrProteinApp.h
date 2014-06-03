@@ -55,6 +55,7 @@ public:
 	void debug();
 	void setupExperiment(int experimentId);
 	void saveSolution();
+	void refreshSettingsDialog();
 
 private:
 	friend class MoleculeDragger;
@@ -77,7 +78,7 @@ private:
 	std::unique_ptr<Misc::File> experimentFile;
 
 	/* Methods: */
-	std::unique_ptr<DrawMolecule> LoadMolecule(const std::string& fileName) const;
+	std::unique_ptr<DrawMolecule> CreateMolecule(const std::string& fileName) const;
 	int IndexOfMolecule(const std::string& moleculeName) const;
 	std::vector<std::string> GetDropdownItemStrings() const;
 	//Helper
@@ -109,7 +110,7 @@ private:
 	void createStatisticsDialog(void);
 	// UI Callbacks
 	void moleculeSelectorChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
-	void moleculeLoaderChangedCallback(GLMotif::RadioBox::ValueChangedCallbackData* cbData);
+	void moleculeLoaderChangedCallback(GLMotif::DropdownBox::ValueChangedCallbackData* cbData);
 };
 
 }

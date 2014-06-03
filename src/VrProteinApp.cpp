@@ -67,8 +67,8 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 			isCalculatingForces(false) {
 
 	/* load molecule data */
-	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
-	drawMolecules.push_back(LoadMolecule("alanin/alanin.pdb"));
+	drawMolecules.push_back(CreateMolecule("alanin/alanin.pdb"));
+	drawMolecules.push_back(CreateMolecule("alanin/alanin.pdb"));
 
 	/* Move them away */
 	drawMolecules.at(0)->SetState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
@@ -218,24 +218,24 @@ void VrProteinApp::setupExperiment(int experimentId) {
 	std::cout << "Loading experiment " << experimentId << std::endl;
 	switch(experimentId) {
 	case 1:
-		drawMolecules.at(0) = LoadMolecule("1BU4/1BU4_2GP.pdb");
-		drawMolecules.at(1) = LoadMolecule("1BU4/1BU4.pdb");
+		drawMolecules.at(0) = CreateMolecule("1BU4/1BU4_2GP.pdb");
+		drawMolecules.at(1) = CreateMolecule("1BU4/1BU4.pdb");
 		break;
 	case 2:
-		drawMolecules.at(0) = LoadMolecule("1STP/1STP_BTN.pdb");
-		drawMolecules.at(1) = LoadMolecule("1STP/1STP.pdb");
+		drawMolecules.at(0) = CreateMolecule("1STP/1STP_BTN.pdb");
+		drawMolecules.at(1) = CreateMolecule("1STP/1STP.pdb");
 		break;
 	case 3:
-		drawMolecules.at(0) = LoadMolecule("3PTB/3PTB_BEN.pdb");
-		drawMolecules.at(1) = LoadMolecule("3PTB/3PTB.pdb");
+		drawMolecules.at(0) = CreateMolecule("3PTB/3PTB_BEN.pdb");
+		drawMolecules.at(1) = CreateMolecule("3PTB/3PTB.pdb");
 		break;
 	case 4:
-		drawMolecules.at(0) = LoadMolecule("3VGC/3VGC_SRB.pdb");
-		drawMolecules.at(1) = LoadMolecule("3VGC/3VGC.pdb");
+		drawMolecules.at(0) = CreateMolecule("3VGC/3VGC_SRB.pdb");
+		drawMolecules.at(1) = CreateMolecule("3VGC/3VGC.pdb");
 		break;
 	case 5:
-		drawMolecules.at(0) = LoadMolecule("1XIG/1XIG_XYL.pdb");
-		drawMolecules.at(1) = LoadMolecule("1XIG/1XIG.pdb");
+		drawMolecules.at(0) = CreateMolecule("1XIG/1XIG_XYL.pdb");
+		drawMolecules.at(1) = CreateMolecule("1XIG/1XIG.pdb");
 		break;
 	default:
 		throw std::runtime_error("Bad call to setupExperiment");
@@ -370,25 +370,13 @@ void VrProteinApp::createSettingsDialog(void) {
 
 	// Molecule Picker radio box
 	new Label("LoadLabel", settings, "Load molecule:");
-	auto moleculeLoader = new RadioBox("MoleculeLoader", settings, false);
-	new ToggleButton("AlaninBtn", moleculeLoader, "alanin/alanin.pdb");
-	//new ToggleButton("DNABtn", moleculeLoader, "dna.pdb");
-	//new ToggleButton("BrHBtn", moleculeLoader, "brH.pdb");
-	new ToggleButton("1STPBtn", moleculeLoader, "1STP/1STP.pdb");
-	new ToggleButton("1STP_BTNBtn", moleculeLoader, "1STP/1STP_BTN.pdb");
-	new ToggleButton("1BU4Btn", moleculeLoader, "1BU4/1BU4.pdb");
-	new ToggleButton("1BU4_2GPBtn", moleculeLoader, "1BU4/1BU4_2GP.pdb");
-	//new ToggleButton("1MFABtn", moleculeLoader, "1MFA.pdb");
-	//new ToggleButton("1MFA_ABEBtn", moleculeLoader, "1MFA_ABE.pdb");
-	new ToggleButton("3VGCBtn", moleculeLoader, "3VGC/3VGC.pdb");
-	new ToggleButton("3VGC_SRBBtn", moleculeLoader, "3VGC/3VGC_SRB.pdb");
-	new ToggleButton("1XIGBtn", moleculeLoader, "1XIG/1XIG.pdb");
-	new ToggleButton("1XIG_XYLBtn", moleculeLoader, "1XIG/1XIG_XYL.pdb");
-	new ToggleButton("test_1Btn", moleculeLoader, "test_1.pdb");
+	std::vector<std::string> loadItems =
+			{ "---", "alanin/alanin.pdb", "dna/dna.pdb", "1STP/1STP.pdb", "1STP/1STP_BTN.pdb",
+					"1BU4/1BU4.pdb", "1BU4/1BU4_2GP.pdb", "3VGC/3VGC.pdb", "3VGC/3VGC_SRB.pdb",
+					"1XIG/1XIG.pdb", "1XIG/1XIG_XYL.pdb", "test_1.pdb" };
+	auto moleculeLoader = new DropdownBox("MoleculeLoader", settings, loadItems, false);
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
-	moleculeLoader->setSelectionMode(RadioBox::ALWAYS_ONE);
-	moleculeLoader->setSelectedToggle(0); // Alanin default
 	moleculeLoader->manageChild();
 
 	// Style picker radio box
@@ -559,39 +547,44 @@ void VrProteinApp::setDrawStyle(DrawStyle newStyle, bool refreshUI /* = true */)
 	}
 }
 
-/* Selected a molecule for editing in settings dialog */
-void VrProteinApp::moleculeSelectorChangedCallback(DropdownBox::ValueChangedCallbackData* cbData) {
-	selectedMoleculeIdx = cbData->newSelectedItem;
-
-	// refresh UI
-	selectedStyle = drawMolecules[selectedMoleculeIdx]->GetDrawStyle();
-	selectedColorStyle = drawMolecules[selectedMoleculeIdx]->GetColorStyle();
-	// moleculeLoader
-	// TODO
-	// stylePicker
-	// TODO Improve
-	auto sp = dynamic_cast<RadioBox*>(settingsDialog->findDescendant("Settings/StylePicker"));
-	sp->setSelectedToggle(static_cast<int>(selectedStyle) - 1);
-	// colorStylePicker
-	colorStylePicker->setSelectedToggle(static_cast<int>(selectedColorStyle));
-}
-
-/* Load a new molecule */
-void VrProteinApp::moleculeLoaderChangedCallback(RadioBox::ValueChangedCallbackData* cbData) {
-	std::string name = cbData->newSelectedToggle->getString();
-	std::cout << "Selected " << name << " from picker." << std::endl;
-
-	drawMolecules[selectedMoleculeIdx] = LoadMolecule(name);
+void VrProteinApp::refreshSettingsDialog() {
 	// update dropdown label
 	moleculeSelector->clearItems();
 	for (auto& str : GetDropdownItemStrings()) {
 		moleculeSelector->addItem(str.c_str());
 	}
 	moleculeSelector->setSelectedItem(selectedMoleculeIdx);
+	// moleculeLoader
+	auto ml = dynamic_cast<DropdownBox*>(settingsDialog->findDescendant("Settings/MoleculeLoader"));
+	ml->setSelectedItem(0);
+	// stylePicker
+	selectedStyle = drawMolecules[selectedMoleculeIdx]->GetDrawStyle();
+	auto sp = dynamic_cast<RadioBox*>(settingsDialog->findDescendant("Settings/StylePicker"));
+	sp->setSelectedToggle(static_cast<int>(selectedStyle) - 1);
+	// colorStylePicker
+	selectedColorStyle = drawMolecules[selectedMoleculeIdx]->GetColorStyle();
+	colorStylePicker->setSelectedToggle(static_cast<int>(selectedColorStyle));
+}
 
+
+/* Selected a molecule for editing in settings dialog */
+void VrProteinApp::moleculeSelectorChangedCallback(DropdownBox::ValueChangedCallbackData* cbData) {
+	selectedMoleculeIdx = cbData->newSelectedItem;
+	refreshSettingsDialog();
+}
+
+/* Load a new molecule */
+void VrProteinApp::moleculeLoaderChangedCallback(DropdownBox::ValueChangedCallbackData* cbData) {
+	std::string name = cbData->getItem();
+	if (name == "---")
+		return;
+	std::cout << "Selected " << name << " from picker." << std::endl;
+
+	drawMolecules[selectedMoleculeIdx] = CreateMolecule(name);
 	// reset all draggers, just in case
 	for (auto& d : moleculeDraggers)
 		d->Reset();
+	refreshSettingsDialog();
 }
 
 void VrProteinApp::toolCreationCallback(Vrui::ToolManager::ToolCreationCallbackData* cbData) {
@@ -621,7 +614,7 @@ void VrProteinApp::toolDestructionCallback(Vrui::ToolManager::ToolDestructionCal
 }
 
 /* Load a molecule from file */
-unique_ptr<DrawMolecule> VrProteinApp::LoadMolecule(const std::string& fileName) const {
+unique_ptr<DrawMolecule> VrProteinApp::CreateMolecule(const std::string& fileName) const {
 	unique_ptr<Molecule> m = PDBImporter::ParsePDB("./datasets/" + fileName);
 	auto drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
 

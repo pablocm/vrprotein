@@ -104,6 +104,7 @@ private:
 	void DrawSurf(GLContextData& contextData) const;
 	DrawMolecule::Color AtomColor(char short_name) const;
 	DrawMolecule::Color AtomColor(int serial) const;
+	void UpdateVerticesColors();	// Update vertices colors (when using indices)
 };
 
 }
