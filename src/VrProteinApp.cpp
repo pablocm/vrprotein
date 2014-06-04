@@ -547,11 +547,13 @@ void VrProteinApp::setDrawStyle(DrawStyle newStyle, bool refreshUI /* = true */)
 	}
 }
 
-void VrProteinApp::refreshSettingsDialog() {
-	// update dropdown label
-	moleculeSelector->clearItems();
-	for (auto& str : GetDropdownItemStrings()) {
-		moleculeSelector->addItem(str.c_str());
+void VrProteinApp::refreshSettingsDialog(bool rebuildMoleculeSelector /* = true */) {
+	// update selector item labels
+	if (rebuildMoleculeSelector) {
+		moleculeSelector->clearItems();
+		for (auto& str : GetDropdownItemStrings()) {
+			moleculeSelector->addItem(str.c_str());
+		}
 	}
 	moleculeSelector->setSelectedItem(selectedMoleculeIdx);
 	// moleculeLoader
@@ -570,7 +572,7 @@ void VrProteinApp::refreshSettingsDialog() {
 /* Selected a molecule for editing in settings dialog */
 void VrProteinApp::moleculeSelectorChangedCallback(DropdownBox::ValueChangedCallbackData* cbData) {
 	selectedMoleculeIdx = cbData->newSelectedItem;
-	refreshSettingsDialog();
+	refreshSettingsDialog(false);
 }
 
 /* Load a new molecule */

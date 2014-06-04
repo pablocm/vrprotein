@@ -406,6 +406,7 @@ void DrawMolecule::ComputeSurf() {
 		throw std::runtime_error("TODO: Implement surf");
 	}
 	surfComputed = true;
+	surfUsesIndices = false;
 }
 
 bool DrawMolecule::ComputeSurfIdx() {
@@ -431,7 +432,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 				throw std::runtime_error("Error reading .tri.idx vertices");
 
 			Vertex vertex;
-			//vertex.color = Vertex::Color(0.8f, 0.6f, 0.0f); // Unknown at this point
+			vertex.color = Vertex::Color(0.0f, 0.0f, 0.0f); // Unknown at this point
 			vertex.normal = Vertex::Normal(nx, ny, nz);
 			vertex.position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
 			vertices.push_back(vertex);
@@ -441,6 +442,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 			throw std::runtime_error("Error parsing file");
 
 		// Read indexed triangles
+		const auto& atoms = molecule->GetAtoms();
 		while (getline(infile, line)) {
 			int atom_id = stoi(line);
 			// push 3 indices
@@ -449,7 +451,8 @@ bool DrawMolecule::ComputeSurfIdx() {
 					throw std::runtime_error("Error reading .tri.idx triangles");
 				int vIndex = stoi(line);
 				indices.push_back(vIndex);
-				vertexToAtom[vIndex] = atom_id + 1;	// TODO: Will overwrite id for shared vertices
+				// TODO: Will overwrite id for shared vertices
+				vertexToAtom[vIndex] = atoms.at(atom_id)->serial;
 			}
 		}
 		infile.close();

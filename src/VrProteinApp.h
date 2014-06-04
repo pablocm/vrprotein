@@ -55,7 +55,7 @@ public:
 	void debug();
 	void setupExperiment(int experimentId);
 	void saveSolution();
-	void refreshSettingsDialog();
+	void refreshSettingsDialog(bool rebuildMoleculeSelector = true);
 
 private:
 	friend class MoleculeDragger;
