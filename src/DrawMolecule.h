@@ -10,9 +10,10 @@
 
 #include <memory>
 #include <unordered_map>
-#include <GL/GLObject.h>
 #include <GL/GLColor.h>
+#include <GL/GLObject.h>
 #include <GL/GLVertex.h>
+#include <Vrui/TransparentObject.h>
 #include "AffineSpace.h"
 #include "Molecule.h"
 
@@ -29,7 +30,7 @@ enum class ColorStyle {
 	None = 0, AnaglyphFriendly, CPK, Pockets
 };
 
-class DrawMolecule: public GLObject {
+class DrawMolecule: public GLObject, public Vrui::TransparentObject {
 public:
 	/* Embedded classes: */
 	typedef GLVertex<void, 0, GLfloat, 4, GLfloat, GLfloat, 3> Vertex;
@@ -66,7 +67,8 @@ public:
 	void ResetForces();
 
 	virtual void initContext(GLContextData& contextData) const;
-	void glRenderAction(GLContextData& contextData) const;
+	virtual void glRenderAction(GLContextData& contextData) const;
+	virtual void glRenderActionTransparent(GLContextData& contextData) const;
 	void ComputeSurf();
 	void ComputePockets();
 	const Molecule& GetMolecule() const;
@@ -78,6 +80,7 @@ public:
 	const std::unordered_map<int, Point>& GetPocketCentroids() const;
 	const std::vector<Sphere>& GetSpheresOfPocket(int pocket) const;
 	std::string GetNameOfPocket(int pocket) const;
+	bool GetTransparency() const;
 	void SetTransparency(bool isTransparent);
 private:
 	std::unique_ptr<Molecule> molecule;
@@ -98,10 +101,12 @@ private:
 	DrawStyle style;
 	ColorStyle colorStyle;
 	bool isTransparent;
+	GLfloat alpha;
 	bool locked;	// currently locked by a dragger
 	unsigned int glDataVersion; // Version number of the graphics data stored in the GLContexts.
 
 	bool ComputeSurfIdx();
+	void Draw(GLContextData& contextData) const;
 	void DrawPoints(GLContextData& contextData) const;
 	void DrawSurf(GLContextData& contextData) const;
 	DrawMolecule::Color AtomColor(char short_name) const;

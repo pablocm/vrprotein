@@ -218,7 +218,7 @@ void VrProteinApp::debug() {
 	// Toggle transparency
 	std::cout << "Debug: toggle Transparency" << std::endl;
 	drawMolecules[0]->SetTransparency(true);
-	drawMolecules[1]->SetTransparency(true);
+	//drawMolecules[1]->SetTransparency(true);
 }
 
 void VrProteinApp::setupExperiment(int experimentId) {

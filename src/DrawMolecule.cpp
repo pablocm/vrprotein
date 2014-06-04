@@ -15,6 +15,7 @@
 #include <GL/GLTransformationWrappers.h>
 #include <GL/GLExtensionManager.h>
 #include <GL/Extensions/GLARBVertexBufferObject.h>
+#include <Vrui/Vrui.h>
 #include "DrawMolecule.h"
 #include "Molecule.h"
 
@@ -70,6 +71,7 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	pocketsComputed = false;
 	colorStyle = ColorStyle::CPK;
 	isTransparent = false;
+	alpha = 1.0f;
 	locked = false;
 	velocity = Vector::zero;
 	position = Point::origin;
@@ -197,8 +199,9 @@ void DrawMolecule::initContext(GLContextData& contextData) const {
 	contextData.addDataItem(this, dataItem);
 }
 
-void DrawMolecule::glRenderAction(GLContextData& contextData) const {
+void DrawMolecule::Draw(GLContextData& contextData) const {
 	glPushMatrix();
+	/* Go to model coordinates: */
 	glMultMatrix(GetState());
 
 	switch (style) {
@@ -215,7 +218,7 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 	}
 
 	/* Draw Pocket centroids:
-	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.3f, 0.3f));
+	glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.3f, 0.3f, 1.0f));
 	for (const auto& it : pocketCentroids) {
 		glPushMatrix();
 		glTranslate(it.second - Point::origin);
@@ -224,6 +227,34 @@ void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 	}
 	*/
 	glPopMatrix();
+}
+
+
+void DrawMolecule::glRenderAction(GLContextData& contextData) const {
+	if (!isTransparent)
+		Draw(contextData);
+}
+
+void DrawMolecule::glRenderActionTransparent(GLContextData& contextData) const {
+	if (isTransparent) {
+		glPushMatrix();
+		/* Go to navigation coordinates: */
+		glMultMatrix(Vrui::getNavigationTransformation());
+
+		/* Save and prepare OpenGL state to render transparency: */
+		glPushAttrib(GL_LIGHTING_BIT | GL_POLYGON_BIT);
+		glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+
+		/* Render all back faces first: */
+		glCullFace(GL_FRONT);
+		Draw(contextData);
+		/* Render the front faces next: */
+		glCullFace(GL_BACK);
+		Draw(contextData);
+
+		glPopAttrib();
+		glPopMatrix();
+	}
 }
 
 /**
@@ -245,15 +276,15 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 		std::cout << "Compiling new display list" << std::endl;
 		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 		{
-			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
+			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, Color(0.9f, 0.9f, 0.9f, alpha));
 			for (const auto& a : molecule->GetAtoms()) {
 				if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
 					auto color = AtomColor(a->short_name);
-					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, color);
+					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, color);
 				}
 				else if (colorStyle == ColorStyle::Pockets) {
 					auto color = AtomColor(a->serial);
-					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, color);
+					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, color);
 				}
 
 				glPushMatrix();
@@ -331,18 +362,18 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 			glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 			{
 				glBegin(GL_TRIANGLES);
-				glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
+				glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, Color(0.9f, 0.9f, 0.9f, alpha));
 				for (const auto& v : vertices) {
 					if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
 						// The atom info is encoded inside the color components (i know...)
 						char name = static_cast<char>(v.color[0] * 256.0f);
 						auto atomColor = AtomColor(name);
-						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
+						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, atomColor);
 					}
 					else if (colorStyle == ColorStyle::Pockets) {
 						int serial = static_cast<int>(v.color[1] * 16384.0f);
 						auto atomColor = AtomColor(serial);
-						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, atomColor);
+						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, atomColor);
 					}
 					glVertex(v);
 				}
@@ -385,7 +416,7 @@ void DrawMolecule::ComputeSurf() {
 				auto& atom = molecule->GetAtoms().at(atom_id);
 				char name = atom->short_name;
 				int serial = atom->serial;
-				vertex.color = Vertex::Color(name/256.0f, serial/16384.0f, 0);
+				vertex.color = Vertex::Color(name/256.0f, serial/16384.0f, 0, alpha);
 				vertex.normal = Vertex::Normal(nx, ny, nz);
 				vertex.position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
 
@@ -428,7 +459,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 				throw std::runtime_error("Error reading .tri.idx vertices");
 
 			Vertex vertex;
-			vertex.color = Vertex::Color(0.0f, 0.0f, 0.0f); // Unknown at this point
+			vertex.color = Vertex::Color(0.0f, 0.0f, 0.0f, alpha); // Unknown at this point
 			vertex.normal = Vertex::Normal(nx, ny, nz);
 			vertex.position = Vertex::Position(x + offset[0], y + offset[1], z + offset[2]);
 			vertices.push_back(vertex);
@@ -519,36 +550,36 @@ DrawMolecule::Color DrawMolecule::AtomColor(char short_name) const {
 		// Anaglyph-friendly coloring
 		switch (short_name) {
 		case 'H':
-			return Color(0.8f, 0.0f, 0.4f); // red
+			return Color(0.8f, 0.0f, 0.4f, alpha); // red
 		case 'C':
-			return Color(0.3f, 0.8f, 0.3f); // green
+			return Color(0.3f, 0.8f, 0.3f, alpha); // green
 		case 'N':
-			return Color(0.8f, 0.8f, 0.6f); // yellow
+			return Color(0.8f, 0.8f, 0.6f, alpha); // yellow
 		case 'O':
-			return Color(0.5f, 0.3f, 0.8f); // blue
+			return Color(0.5f, 0.3f, 0.8f, alpha); // blue
 		default:
-			return Color(0.9f, 0.9f, 0.9f); // white
+			return Color(0.9f, 0.9f, 0.9f, alpha); // white
 		}
 	}
 	if (colorStyle == ColorStyle::CPK) {
 		// CPK coloring (http://en.wikipedia.org/wiki/CPK_coloring)
 		switch (short_name) {
 		case 'H':
-			return Color(0.95f, 0.95f, 0.95f); // white
+			return Color(0.95f, 0.95f, 0.95f, alpha); // white
 		case 'C':
-			return Color(0.65f, 0.65f, 0.65f); // gray
+			return Color(0.65f, 0.65f, 0.65f, alpha); // gray
 		case 'N':
-			return Color(34/255.0f, 51/255.0f, 1); // dark blue
+			return Color(34/255.0f, 51/255.0f, 1, alpha); // dark blue
 		case 'O':
-			return Color(0.94f, 0, 0); // red
+			return Color(0.94f, 0, 0, alpha); // red
 		case 'S':
-			return Color(1, 200/255.0f, 50/255.0f); // orange
+			return Color(1, 200/255.0f, 50/255.0f, alpha); // orange
 		default:
-			return Color(221/255.0f, 119/255.0f, 1); // pink
+			return Color(221/255.0f, 119/255.0f, 1, alpha); // pink
 		}
 	}
 	// default for None
-	return Color(0.9f, 0.9f, 0.9f); // white
+	return Color(0.9f, 0.9f, 0.9f, alpha); // white
 }
 
 DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
@@ -562,22 +593,22 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 		int randomId = (it->second + molecule->GetAtoms().size()) % 5 + 1;
 		switch(randomId) {
 		case 1:
-			return Color(0.3f, 0.3f, 1.0f);
+			return Color(0.3f, 0.3f, 1.0f, alpha);
 		case 2:
-			return Color(0.3f, 1.0f, 0.3f);
+			return Color(0.3f, 1.0f, 0.3f, alpha);
 		case 3:
-			return Color(0.3f, 1.0f, 1.0f);
+			return Color(0.3f, 1.0f, 1.0f, alpha);
 		case 4:
-			return Color(1.0f, 0.3f, 0.3f);
+			return Color(1.0f, 0.3f, 0.3f, alpha);
 		case 5:
-			return Color(1.0f, 0.3f, 1.0f);
+			return Color(1.0f, 0.3f, 1.0f, alpha);
 		default:
-			return Color(0.7f, 0.7f, 0.7f);
+			return Color(0.7f, 0.7f, 0.7f, alpha);
 		}
-		//return Color(221/255.0f, 119/255.0f, 1); // pink
+		//return Color(221/255.0f, 119/255.0f, 1, alpha); // pink
 	}
 	// default
-	return Color(0.9f, 0.9f, 0.9f); // white
+	return Color(0.9f, 0.9f, 0.9f, alpha); // white
 }
 
 std::string DrawMolecule::GetNameOfPocket(int pocket) const {
@@ -666,11 +697,19 @@ void DrawMolecule::UpdateVerticesColors() {
 	}
 }
 
+bool DrawMolecule::GetTransparency() const {
+	return isTransparent;
+}
+
 void DrawMolecule::SetTransparency(bool newIsTransparent) {
 	if (isTransparent == newIsTransparent)
 		return;
 
 	isTransparent = newIsTransparent;
+	if (isTransparent)
+		alpha = 0.4f;
+	else
+		alpha = 1.0f;
 	UpdateVerticesColors();
 	glDataVersion++;
 }
