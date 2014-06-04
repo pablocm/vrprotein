@@ -206,12 +206,19 @@ void VrProteinApp::frame() {
 }
 
 void VrProteinApp::debug() {
-	std::cout << "Debug:" << std::endl;
+	/* Toggle DrawStyle:
+	std::cout << "Debug: toggle DrawStyle" << std::endl;
 	selectedMoleculeIdx = 1;
 	if (drawMolecules.at(1)->GetDrawStyle() == DrawStyle::Surf)
 		setDrawStyle(DrawStyle::Points);
 	else
 		setDrawStyle(DrawStyle::Surf);
+	*/
+
+	// Toggle transparency
+	std::cout << "Debug: toggle Transparency" << std::endl;
+	drawMolecules[0]->SetTransparency(true);
+	drawMolecules[1]->SetTransparency(true);
 }
 
 void VrProteinApp::setupExperiment(int experimentId) {
@@ -485,7 +492,7 @@ std::vector<std::string> VrProteinApp::GetDropdownItemStrings() const {
 	}
 
 	for (unsigned int i = 0; i < drawMolecules.size(); i++) {
-		items.push_back(std::to_string(i) + ": " + drawMolecules[i]->GetName());
+		items.push_back(std::to_string(i) + ": " + drawMolecules.at(i)->GetName());
 	}
 	return items;
 }
@@ -532,7 +539,7 @@ void VrProteinApp::setForceAttenuation(Scalar factor) {
 void VrProteinApp::setColorStyle(ColorStyle newStyle, bool refreshUI /* = true */) {
 	std::cout << "Changing color style to " << static_cast<int>(newStyle) << std::endl;
 	selectedColorStyle = newStyle;
-	drawMolecules[selectedMoleculeIdx]->SetColorStyle(selectedColorStyle);
+	drawMolecules.at(selectedMoleculeIdx)->SetColorStyle(selectedColorStyle);
 	if (refreshUI) {
 		colorStylePicker->setSelectedToggle(static_cast<int>(newStyle));
 	}
@@ -541,7 +548,7 @@ void VrProteinApp::setColorStyle(ColorStyle newStyle, bool refreshUI /* = true *
 void VrProteinApp::setDrawStyle(DrawStyle newStyle, bool refreshUI /* = true */) {
 	std::cout << "Changing draw style to " << static_cast<int>(newStyle) << std::endl;
 	selectedStyle = newStyle;
-	drawMolecules[selectedMoleculeIdx]->SetDrawStyle(selectedStyle);
+	drawMolecules.at(selectedMoleculeIdx)->SetDrawStyle(selectedStyle);
 	if (refreshUI) {
 		stylePicker->setSelectedToggle(static_cast<int>(newStyle));
 	}
@@ -560,11 +567,11 @@ void VrProteinApp::refreshSettingsDialog(bool rebuildMoleculeSelector /* = true 
 	auto ml = dynamic_cast<DropdownBox*>(settingsDialog->findDescendant("Settings/MoleculeLoader"));
 	ml->setSelectedItem(0);
 	// stylePicker
-	selectedStyle = drawMolecules[selectedMoleculeIdx]->GetDrawStyle();
+	selectedStyle = drawMolecules.at(selectedMoleculeIdx)->GetDrawStyle();
 	auto sp = dynamic_cast<RadioBox*>(settingsDialog->findDescendant("Settings/StylePicker"));
 	sp->setSelectedToggle(static_cast<int>(selectedStyle) - 1);
 	// colorStylePicker
-	selectedColorStyle = drawMolecules[selectedMoleculeIdx]->GetColorStyle();
+	selectedColorStyle = drawMolecules.at(selectedMoleculeIdx)->GetColorStyle();
 	colorStylePicker->setSelectedToggle(static_cast<int>(selectedColorStyle));
 }
 
@@ -582,7 +589,7 @@ void VrProteinApp::moleculeLoaderChangedCallback(DropdownBox::ValueChangedCallba
 		return;
 	std::cout << "Selected " << name << " from picker." << std::endl;
 
-	drawMolecules[selectedMoleculeIdx] = CreateMolecule(name);
+	drawMolecules.at(selectedMoleculeIdx) = CreateMolecule(name);
 	// reset all draggers, just in case
 	for (auto& d : moleculeDraggers)
 		d->Reset();
@@ -629,7 +636,7 @@ unique_ptr<DrawMolecule> VrProteinApp::CreateMolecule(const std::string& fileNam
 /* Find index of molecule by its name. Throws on failure. */
 int VrProteinApp::IndexOfMolecule(const std::string& moleculeName) const {
 	for (unsigned int i = 0; i < drawMolecules.size(); i++) {
-		if (drawMolecules[i]->GetName() == moleculeName) {
+		if (drawMolecules.at(i)->GetName() == moleculeName) {
 			return i;
 		}
 	}

@@ -27,7 +27,8 @@ Methods of class DrawMolecule::DataItem:
 ****************************************/
 
 DrawMolecule::DataItem::DataItem() :
-			hasVertexBufferObjectExtension(GLARBVertexBufferObject::isSupported()) {
+			hasVertexBufferObjectExtension(GLARBVertexBufferObject::isSupported()),
+			glDataVersion(0) {
 	if (hasVertexBufferObjectExtension) {
 		std::cout << "Video card supports GL_ARB_vertex_buffer_object." << std::endl;
 		/* Initialize the vertex buffer object extension: */
@@ -43,15 +44,13 @@ DrawMolecule::DataItem::DataItem() :
 
 	// Create display list for storing molecule rendering
 	displayListId = glGenLists(1);
-	displayListDrawStyle = DrawStyle::None;
-	displayListColorStyle = ColorStyle::None;
 }
 
 DrawMolecule::DataItem::~DataItem(void) {
 	if (hasVertexBufferObjectExtension) {
 		/* Destroy the vertex and index buffer objects: */
-		glDeleteBuffersARB(6, faceVertexBufferObjectIDs);
-		glDeleteBuffersARB(6, faceIndexBufferObjectIDs);
+		glDeleteBuffersARB(1, faceVertexBufferObjectIDs);
+		glDeleteBuffersARB(1, faceIndexBufferObjectIDs);
 	}
 
 	// Destroy the display list
@@ -70,10 +69,12 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	surfUsesIndices = false;
 	pocketsComputed = false;
 	colorStyle = ColorStyle::CPK;
+	isTransparent = false;
 	locked = false;
 	velocity = Vector::zero;
 	position = Point::origin;
 	orientation = Rotation::identity;
+	glDataVersion = 0;
 }
 
 bool DrawMolecule::Intersects(const Ray& r) const {
@@ -232,18 +233,16 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 	/* Get the OpenGL-dependent application data from the GLContextData object: */
 	DataItem* dataItem = contextData.retrieveDataItem<DataItem>(this);
 
-	if (dataItem->displayListDrawStyle == DrawStyle::Points
-			&& dataItem->displayListColorStyle == colorStyle) {
+	if (dataItem->glDataVersion == glDataVersion) {
 		/* Call the display list */
 		glCallList(dataItem->displayListId);
 	}
 	else {
 		glDeleteLists(dataItem->displayListId, 1);
-		dataItem->displayListDrawStyle = DrawStyle::Points;
-		dataItem->displayListColorStyle = colorStyle;
+		dataItem->glDataVersion = glDataVersion;
 
 		/* Compile and execute a new display list */
-		//std::cout << "Compiling new display list" << std::endl;
+		std::cout << "Compiling new display list" << std::endl;
 		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 		{
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT, Color(0.9f, 0.9f, 0.9f));
@@ -290,11 +289,9 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 			/* Bind the face's vertex buffer object: */
 			glBindBufferARB(GL_ARRAY_BUFFER_ARB, dataItem->faceVertexBufferObjectIDs[0]);
 			/* Check if we need to upload data: */
-			if (dataItem->displayListDrawStyle != DrawStyle::Surf
-					|| dataItem->displayListColorStyle != colorStyle) {
-				//std::cout << "Updating VBO" << std::endl;
-				dataItem->displayListDrawStyle = DrawStyle::Surf;
-				dataItem->displayListColorStyle = colorStyle;
+			if (dataItem->glDataVersion != glDataVersion) {
+				std::cout << "Updating VBO" << std::endl;
+				dataItem->glDataVersion = glDataVersion;
 				/* Upload new vertex & index data: */
 				glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, indices.size() * sizeof(GLuint),
 						&indices[0], GL_STATIC_DRAW_ARB);
@@ -321,18 +318,16 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 		glPopAttrib();
 	}
 	else {
-		if (dataItem->displayListDrawStyle == DrawStyle::Surf
-				&& dataItem->displayListColorStyle == colorStyle) {
+		if (dataItem->glDataVersion == glDataVersion) {
 			/* Call the display list */
 			glCallList(dataItem->displayListId);
 		}
 		else {
 			glDeleteLists(dataItem->displayListId, 1);
-			dataItem->displayListDrawStyle = DrawStyle::Surf;
-			dataItem->displayListColorStyle = colorStyle;
+			dataItem->glDataVersion = glDataVersion;
 
 			/* Compile and execute a new display list */
-			//std::cout << "Compiling new display list" << std::endl;
+			std::cout << "Compiling new display list" << std::endl;
 			glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 			{
 				glBegin(GL_TRIANGLES);
@@ -407,6 +402,7 @@ void DrawMolecule::ComputeSurf() {
 	}
 	surfComputed = true;
 	surfUsesIndices = false;
+	glDataVersion++;
 }
 
 bool DrawMolecule::ComputeSurfIdx() {
@@ -461,6 +457,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 		cout << "; Indices: " << indices.size() << endl;
 		surfComputed = true;
 		surfUsesIndices = true;
+		glDataVersion++;
 
 		// Colorize vertices
 		UpdateVerticesColors();
@@ -625,6 +622,7 @@ void DrawMolecule::SetColorStyle(ColorStyle newColorStyle) {
 		ComputePockets();
 	}
 	UpdateVerticesColors();
+	glDataVersion++;
 }
 
 DrawStyle DrawMolecule::GetDrawStyle() const {
@@ -632,10 +630,14 @@ DrawStyle DrawMolecule::GetDrawStyle() const {
 }
 
 void DrawMolecule::SetDrawStyle(DrawStyle newStyle) {
+	if (style == newStyle)
+		return;
+
 	style = newStyle;
-	if (newStyle == DrawStyle::Surf) {
+	if (style == DrawStyle::Surf) {
 		ComputeSurf();
 	}
+	glDataVersion++;
 }
 
 void DrawMolecule::UpdateVerticesColors() {
@@ -646,6 +648,7 @@ void DrawMolecule::UpdateVerticesColors() {
 		case ColorStyle::Pockets:
 			for (unsigned int i = 0; i < vertices.size(); i++) {
 				vertices[i].color = AtomColor(vertexToAtom.at(i));
+				vertices[i].color[3] = isTransparent ? 0.6f : 1.0f;
 			}
 			break;
 		case ColorStyle::None:
@@ -653,12 +656,23 @@ void DrawMolecule::UpdateVerticesColors() {
 				v.color[0] = 0.9f;
 				v.color[1] = 0.9f;
 				v.color[2] = 0.9f;
+				v.color[3] = isTransparent ? 0.6f : 1.0f;
 			}
 			break;
 		default:
 			throw std::runtime_error("Unknown colorStyle");
 		}
+		glDataVersion++;
 	}
+}
+
+void DrawMolecule::SetTransparency(bool newIsTransparent) {
+	if (isTransparent == newIsTransparent)
+		return;
+
+	isTransparent = newIsTransparent;
+	UpdateVerticesColors();
+	glDataVersion++;
 }
 
 const std::unordered_map<int, Point>& DrawMolecule::GetPocketCentroids() const {

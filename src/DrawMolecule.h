@@ -43,8 +43,7 @@ public:
 		GLuint faceIndexBufferObjectIDs[1]; // Array of index buffer object IDs
 
 		GLuint displayListId;  // The display List for the molecule
-		DrawStyle displayListDrawStyle;  // Selected style for current display list
-		ColorStyle displayListColorStyle;  // Selected color style for current display list
+		unsigned int glDataVersion; // Version number of the graphics data stored in this GLContext.
 
 		/* Constructors and destructors: */
 		DataItem(void);
@@ -79,6 +78,7 @@ public:
 	const std::unordered_map<int, Point>& GetPocketCentroids() const;
 	const std::vector<Sphere>& GetSpheresOfPocket(int pocket) const;
 	std::string GetNameOfPocket(int pocket) const;
+	void SetTransparency(bool isTransparent);
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<Vertex> vertices;
@@ -97,7 +97,9 @@ private:
 	bool pocketsComputed;
 	DrawStyle style;
 	ColorStyle colorStyle;
+	bool isTransparent;
 	bool locked;	// currently locked by a dragger
+	unsigned int glDataVersion; // Version number of the graphics data stored in the GLContexts.
 
 	bool ComputeSurfIdx();
 	void DrawPoints(GLContextData& contextData) const;
