@@ -55,6 +55,9 @@ public:
 	void setDrawStyle(DrawStyle newStyle, bool refreshUI = true);
 	void debug();
 	void setupExperiment(int experimentId);
+	void moveToPocket(int pocketId);	// Move to best current solution of pocket id
+	void toggleClosestVisibility();	// Toggle visibility for solution at closest pocket
+	void toggleAllVisibility(); // Toggle visibility for ALL solutions
 	void saveSolution();
 	void refreshSettingsDialog(bool rebuildMoleculeSelector = true);
 

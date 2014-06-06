@@ -185,10 +185,6 @@ void VrProteinApp::frame() {
 				bestSimResults.at(closestPocket) = latestSimResult;
 				bestDrawMolecules.at(closestPocket)->SetState(ligand->GetState());
 			}
-			// Hide all solutions except the "active pocket" one
-			for (auto& it : bestDrawMolecules)
-				it.second->SetVisibility(false);
-			bestDrawMolecules.at(closestPocket)->SetVisibility(true);
 		}
 
 		// Apply force to molecule
@@ -226,6 +222,7 @@ void VrProteinApp::frame() {
 }
 
 void VrProteinApp::debug() {
+	std::cout << "Debug: doing nothing" << std::endl;
 	/* Toggle DrawStyle:
 	std::cout << "Debug: toggle DrawStyle" << std::endl;
 	selectedMoleculeIdx = 1;
@@ -235,10 +232,11 @@ void VrProteinApp::debug() {
 		setDrawStyle(DrawStyle::Surf);
 	*/
 
-	// Toggle transparency
+	/* Toggle transparency
 	std::cout << "Debug: toggle Transparency" << std::endl;
 	drawMolecules[0]->SetTransparency(true);
 	//drawMolecules[1]->SetTransparency(true);
+	*/
 }
 
 void VrProteinApp::setupExperiment(int experimentId) {
@@ -311,6 +309,39 @@ void VrProteinApp::setupExperiment(int experimentId) {
 	centerDisplay();
 }
 
+void VrProteinApp::moveToPocket(int pocketId) {
+	auto pocketStr = drawMolecules.at(1)->GetNameOfPocket(pocketId);
+	std::cout << "Moving ligand to best solution at pocket " << pocketId << pocketStr << std::endl;
+	// Move to pocket
+	drawMolecules.at(0)->SetState(bestDrawMolecules.at(pocketId)->GetState());
+	// Turn off other solutions transparencies
+	for (auto& it : bestDrawMolecules)
+		it.second->SetVisibility(false);
+	bestDrawMolecules.at(pocketId)->SetVisibility(true);
+}
+
+void VrProteinApp::toggleClosestVisibility() {
+	const int closestId = latestSimResult.closestPocket;
+	if (closestId != -1) {
+		bool originalVisib = bestDrawMolecules.at(closestId)->GetVisibility();
+		auto pocketStr = drawMolecules.at(1)->GetNameOfPocket(closestId);
+		for (auto& it : bestDrawMolecules)
+				it.second->SetVisibility(false);
+		std::cout << "Toggle pocket " << closestId << pocketStr << " visib. to " << !originalVisib
+				<< std::endl;
+		bestDrawMolecules.at(closestId)->SetVisibility(!originalVisib);
+	}
+	else
+		std::cout << "Warning: No pockets nearby to toggle visibility." << std::endl;
+}
+
+void VrProteinApp::toggleAllVisibility() {
+	bool originalVisib = bestDrawMolecules.at(1)->GetVisibility();
+	for (auto& it : bestDrawMolecules)
+		it.second->SetVisibility(!originalVisib);
+	std::cout << "Toggle ALL visibilities to " << !originalVisib << std::endl;
+}
+
 void VrProteinApp::saveSolution() {
 	if (Vrui::isMaster()) {
 		/* Ensure file is open: */
@@ -333,7 +364,8 @@ void VrProteinApp::saveSolution() {
 					+ ONTransformToString(drawMolecules.at(1)->GetState());
 			if (isSimulating) {
 				message += "Pocket:\n";
-				message += "- Closest: " + std::to_string(latestSimResult.closestPocket) + "\n"
+				message += "- Closest: " + std::to_string(latestSimResult.closestPocket)
+						+ drawMolecules.at(1)->GetNameOfPocket(latestSimResult.closestPocket) + "\n"
 						+ "- Mean Pocket Dist: " + std::to_string(latestSimResult.meanPocketDist) + "\n"
 						+ "- Energy: " + std::to_string(latestSimResult.energy) + "\n"
 						+ "- Overlapping: "
