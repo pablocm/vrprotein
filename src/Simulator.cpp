@@ -69,23 +69,28 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 				continue;
 
 			// trusting the compiler optimizations
-			Scalar rm6 = rm * rm * rm * rm * rm * rm;
+			Scalar rm2 = rm * rm;
+			Scalar rm6 = rm2 * rm2 * rm2;
 			Scalar r6 = r2 * r2 * r2;
 			Scalar rm6_r6 = rm6 / r6;
 			Scalar energy = -1 * (rm6_r6*rm6_r6 - 2*rm6_r6);
 			result.energy += energy;
 
-			if (calcForces && energy != 0) {
-				if (ligAtomPos != ligPos) { // Torque & force
-					Vector r = ligAtomPos - ligPos; // position relative to center of mass
+			if (calcForces) {
+				Scalar forceMag = 0; // TODO: = energy
+				if (r2 < rm2) // are overlapping
+					forceMag = -3 * (Math::sqrt(rm2) - Math::sqrt(r2)); // Hooke's law
+
+				Vector r = ligAtomPos - ligPos; // position relative to center of mass
+				if (r.max() > 0.005 && Math::abs(forceMag) > 0.005) { // Torque & force
 					Vector r_norm = r.normalize();
-					Vector f = (recAtomPos - ligAtomPos).normalize() * energy; // force
+					Vector f = (recAtomPos - ligAtomPos).normalize() * forceMag;
 
 					result.netTorque += Geometry::cross(r, f);
 					result.netForce += (f * r_norm) * r_norm; // project force
 				}
-				else { // Force
-					result.netForce += (recAtomPos - ligAtomPos).normalize() * energy; // force
+				else { // Only Force
+					result.netForce += (recAtomPos - ligAtomPos).normalize() * forceMag;
 				}
 			}
 		}
