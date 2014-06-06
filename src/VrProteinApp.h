@@ -9,6 +9,7 @@
 #define VRPROTEINAPP_H_
 
 #include <memory>
+#include <unordered_map>
 #include <GLMotif/DropdownBox.h>
 #include <GLMotif/PopupMenu.h>
 #include <GLMotif/PopupWindow.h>
@@ -65,6 +66,7 @@ private:
 	Simulator simulator;
 	DomainBox domainBox;
 	std::vector<std::unique_ptr<DrawMolecule>> drawMolecules;
+	std::unordered_map<int, std::unique_ptr<DrawMolecule>> bestDrawMolecules;
 	DrawStyle selectedStyle;
 	ColorStyle selectedColorStyle;
 	int selectedMoleculeIdx;
@@ -74,7 +76,7 @@ private:
 	bool isCalculatingForces;
 	Scalar forceAttenuation;	// 1.0 = Normal, 0.0 = Forces do not affect molecule.
 	Simulator::SimResult latestSimResult;
-	Simulator::SimResult bestSimResult;
+	std::unordered_map<int, Simulator::SimResult> bestSimResults;
 	// Experiment
 	std::unique_ptr<Misc::File> experimentFile;
 

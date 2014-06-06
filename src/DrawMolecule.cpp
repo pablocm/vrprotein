@@ -70,6 +70,7 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	surfUsesIndices = false;
 	pocketsComputed = false;
 	colorStyle = ColorStyle::CPK;
+	isVisible = true;
 	isTransparent = false;
 	alpha = 1.0f;
 	locked = false;
@@ -231,12 +232,12 @@ void DrawMolecule::Draw(GLContextData& contextData) const {
 
 
 void DrawMolecule::glRenderAction(GLContextData& contextData) const {
-	if (!isTransparent)
+	if (isVisible && !isTransparent)
 		Draw(contextData);
 }
 
 void DrawMolecule::glRenderActionTransparent(GLContextData& contextData) const {
-	if (isTransparent) {
+	if (isVisible && isTransparent) {
 		glPushMatrix();
 		/* Go to navigation coordinates: */
 		glMultMatrix(Vrui::getNavigationTransformation());
@@ -712,6 +713,14 @@ void DrawMolecule::SetTransparency(bool newIsTransparent) {
 		alpha = 1.0f;
 	UpdateVerticesColors();
 	glDataVersion++;
+}
+
+bool DrawMolecule::GetVisibility() const {
+	return isVisible;
+}
+
+void DrawMolecule::SetVisibility(bool newIsVisible) {
+	isVisible = newIsVisible;
 }
 
 const std::unordered_map<int, Point>& DrawMolecule::GetPocketCentroids() const {

@@ -82,6 +82,8 @@ public:
 	std::string GetNameOfPocket(int pocket) const;
 	bool GetTransparency() const;
 	void SetTransparency(bool isTransparent);
+	bool GetVisibility() const;
+	void SetVisibility(bool isVisible);
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<Vertex> vertices;
@@ -100,6 +102,7 @@ private:
 	bool pocketsComputed;
 	DrawStyle style;
 	ColorStyle colorStyle;
+	bool isVisible;
 	bool isTransparent;
 	GLfloat alpha;
 	bool locked;	// currently locked by a dragger
