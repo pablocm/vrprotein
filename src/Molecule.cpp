@@ -13,7 +13,9 @@ using namespace std;
 
 namespace VrProtein {
 
-Molecule::Molecule() {
+Molecule::Molecule() :
+	source_filename(""),
+	offset(Vector::zero) {
 }
 
 void Molecule::AddAtom(unique_ptr<MolAtom> &atom) {

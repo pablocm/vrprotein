@@ -467,7 +467,8 @@ void VrProteinApp::createSettingsDialog(void) {
 	std::vector<std::string> loadItems =
 			{ "---", "alanin/alanin.pdb", "dna/dna.pdb", "1STP/1STP.pdb", "1STP/1STP_BTN.pdb",
 					"1BU4/1BU4.pdb", "1BU4/1BU4_2GP.pdb", "3VGC/3VGC.pdb", "3VGC/3VGC_SRB.pdb",
-					"1XIG/1XIG.pdb", "1XIG/1XIG_XYL.pdb", "test_1.pdb" };
+					"1XIG/1XIG.pdb", "1XIG/1XIG_XYL.pdb", "3PTB/3PTB.pdb", "3PTB/3PTB_BEN.pdb",
+					"test_1.pdb" };
 	auto moleculeLoader = new DropdownBox("MoleculeLoader", settings, loadItems, false);
 	moleculeLoader->getValueChangedCallbacks().add(this,
 			&VrProteinApp::moleculeLoaderChangedCallback);
