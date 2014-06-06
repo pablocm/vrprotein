@@ -15,11 +15,14 @@ Simulator::Simulator() {
 }
 
 Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolecule& receptor,
-		bool calcForces) {
+		bool calcForces) const {
 	auto result = SimResult();
 	ONTransform ligTransform = ligand.GetState();
 	ONTransform recTransform = receptor.GetState();
 	Point ligPos = ligTransform.getOrigin();
+
+	// Calculate overlapping
+	result.overlappingAmount = ligand.Intersects(receptor);
 
 	// Find closest pocket to ligand (if receptor has any)
 	result.closestPocket = -1;
@@ -46,6 +49,8 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 		}
 		result.meanPocketDist = Math::sqrt(result.meanPocketDist) / pocketSpheres.size();
 	}
+	else
+		result.meanPocketDist = 999;
 
 
 	for(const auto& ligAtom : ligand.GetMolecule().GetAtoms()) {
@@ -87,6 +92,10 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 	}
 
 	return result;
+}
+
+bool Simulator::compare(const Simulator::SimResult& sr1, const Simulator::SimResult& sr2) const {
+	return sr1.overlappingAmount < 2.0 && sr1.meanPocketDist <= sr2.meanPocketDist;
 }
 
 }

@@ -21,6 +21,7 @@ class Simulator {
 public:
 	/* Embedded classes: */
 	struct SimResult {
+		Scalar overlappingAmount;
 		Vector netForce;
 		Vector netTorque;
 		Scalar energy;
@@ -30,7 +31,8 @@ public:
 
 	/* Methods */
 	Simulator();
-	SimResult step(const DrawMolecule& ligand, const DrawMolecule& receptor, bool calcForces);
+	SimResult step(const DrawMolecule& ligand, const DrawMolecule& receptor, bool calcForces) const;
+	bool compare(const SimResult& sr1, const SimResult& sr2) const;	// True if sr1 is better one
 };
 
 }

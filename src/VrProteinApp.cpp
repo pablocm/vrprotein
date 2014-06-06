@@ -169,30 +169,40 @@ void VrProteinApp::frame() {
 
 	if (isSimulating) {
 		// Calculate stuff
-		auto overlappingAmount = drawMolecules.at(0)->Intersects(*drawMolecules.at(1));
-		simResult = simulator.step(*drawMolecules.at(0), *drawMolecules.at(1), isCalculatingForces);
+		latestSimResult = simulator.step(*drawMolecules.at(0), *drawMolecules.at(1),
+				isCalculatingForces);
+
+		// Update best solution
+		if (simulator.compare(latestSimResult, bestSimResult)) {
+			bestSimResult = latestSimResult;
+			// Move transparent marker
+			if (drawMolecules.size() == 3) {
+				drawMolecules.at(2)->SetState(drawMolecules.at(0)->GetState());
+			}
+		}
 
 		// Apply force to molecule
 		if (isCalculatingForces) {
-			if (simResult.energy != 0)
-				drawMolecules.at(0)->Step(simResult.netForce * forceAttenuation,
-						simResult.netTorque * forceAttenuation, timeStep);
+			if (latestSimResult.energy != 0)
+				drawMolecules.at(0)->Step(latestSimResult.netForce * forceAttenuation,
+						latestSimResult.netTorque * forceAttenuation, timeStep);
 			else
 				drawMolecules.at(0)->ResetForces();
 		}
 
 		// Draw statistics (update only if dialog is visible)
 		if (isStatsVisible) {
-			heuristicTextField->setValue(simResult.energy);
-			overlappingTextField->setValue(overlappingAmount);
-			closestPocketTextField->setValue(simResult.closestPocket);
-			meanDistanceTextField->setValue(simResult.meanPocketDist);
+			heuristicTextField->setValue(latestSimResult.energy);
+			overlappingTextField->setValue(latestSimResult.overlappingAmount);
+			closestPocketTextField->setValue(latestSimResult.closestPocket);
+			meanDistanceTextField->setValue(latestSimResult.meanPocketDist);
 			frameRateTextField->setValue(static_cast<int>(1/timeStep));
 		}
 		// widgets
-		overlapWidget->setValue(overlappingAmount);
-		distanceWidget->setTitle("Dist. " + drawMolecules.at(1)->GetNameOfPocket(simResult.closestPocket));
-		distanceWidget->setValue(simResult.meanPocketDist);
+		overlapWidget->setValue(latestSimResult.overlappingAmount);
+		distanceWidget->setTitle(
+				"Dist. " + drawMolecules.at(1)->GetNameOfPocket(latestSimResult.closestPocket));
+		distanceWidget->setValue(latestSimResult.meanPocketDist);
 	}
 	else {
 		if (isStatsVisible) {
@@ -223,36 +233,58 @@ void VrProteinApp::debug() {
 
 void VrProteinApp::setupExperiment(int experimentId) {
 	std::cout << "Loading experiment " << experimentId << std::endl;
+	drawMolecules.clear();
 	switch(experimentId) {
 	case 1:
-		drawMolecules.at(0) = CreateMolecule("1BU4/1BU4_2GP.pdb");
-		drawMolecules.at(1) = CreateMolecule("1BU4/1BU4.pdb");
+		drawMolecules.push_back(CreateMolecule("1BU4/1BU4_2GP.pdb"));
+		drawMolecules.push_back(CreateMolecule("1BU4/1BU4.pdb"));
+		drawMolecules.push_back(CreateMolecule("1BU4/1BU4_2GP.pdb"));
 		break;
 	case 2:
-		drawMolecules.at(0) = CreateMolecule("1STP/1STP_BTN.pdb");
-		drawMolecules.at(1) = CreateMolecule("1STP/1STP.pdb");
+		drawMolecules.push_back(CreateMolecule("1STP/1STP_BTN.pdb"));
+		drawMolecules.push_back(CreateMolecule("1STP/1STP.pdb"));
+		drawMolecules.push_back(CreateMolecule("1STP/1STP_BTN.pdb"));
 		break;
 	case 3:
-		drawMolecules.at(0) = CreateMolecule("3PTB/3PTB_BEN.pdb");
-		drawMolecules.at(1) = CreateMolecule("3PTB/3PTB.pdb");
+		drawMolecules.push_back(CreateMolecule("3PTB/3PTB_BEN.pdb"));
+		drawMolecules.push_back(CreateMolecule("3PTB/3PTB.pdb"));
+		drawMolecules.push_back(CreateMolecule("3PTB/3PTB_BEN.pdb"));
 		break;
 	case 4:
-		drawMolecules.at(0) = CreateMolecule("3VGC/3VGC_SRB.pdb");
-		drawMolecules.at(1) = CreateMolecule("3VGC/3VGC.pdb");
+		drawMolecules.push_back(CreateMolecule("3VGC/3VGC_SRB.pdb"));
+		drawMolecules.push_back(CreateMolecule("3VGC/3VGC.pdb"));
+		drawMolecules.push_back(CreateMolecule("3VGC/3VGC_SRB.pdb"));
 		break;
 	case 5:
-		drawMolecules.at(0) = CreateMolecule("1XIG/1XIG_XYL.pdb");
-		drawMolecules.at(1) = CreateMolecule("1XIG/1XIG.pdb");
+		drawMolecules.push_back(CreateMolecule("1XIG/1XIG_XYL.pdb"));
+		drawMolecules.push_back(CreateMolecule("1XIG/1XIG.pdb"));
+		drawMolecules.push_back(CreateMolecule("1XIG/1XIG_XYL.pdb"));
 		break;
 	default:
 		throw std::runtime_error("Bad call to setupExperiment");
 	}
+	// Ligand
 	drawMolecules.at(0)->SetColorStyle(ColorStyle::CPK);
-	drawMolecules.at(1)->SetColorStyle(ColorStyle::Pockets);
 	drawMolecules.at(0)->SetDrawStyle(DrawStyle::Surf);
-	drawMolecules.at(1)->SetDrawStyle(DrawStyle::Surf);
 	drawMolecules.at(0)->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+	// Protein
+	drawMolecules.at(1)->SetColorStyle(ColorStyle::Pockets);
+	drawMolecules.at(1)->SetDrawStyle(DrawStyle::Surf);
 	drawMolecules.at(1)->SetState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
+	drawMolecules.at(1)->Lock();
+	// Transp
+	drawMolecules.at(2)->SetColorStyle(ColorStyle::CPK);
+	drawMolecules.at(2)->SetDrawStyle(DrawStyle::Surf);
+	drawMolecules.at(2)->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+	drawMolecules.at(2)->SetTransparency(true);
+	drawMolecules.at(2)->Lock();
+
+	//Reset SimResults
+	bestSimResult = Simulator::SimResult();
+	bestSimResult.energy = 999999;
+	bestSimResult.closestPocket = -1;
+	bestSimResult.meanPocketDist = 999999;
+
 	centerDisplay();
 }
 
@@ -278,9 +310,9 @@ void VrProteinApp::saveSolution() {
 					+ ONTransformToString(drawMolecules.at(1)->GetState());
 			if (isSimulating) {
 				message += "Pocket:\n";
-				message += "- Closest: " + std::to_string(simResult.closestPocket) + "\n"
-						+ "- Mean Pocket Dist: " + std::to_string(simResult.meanPocketDist) + "\n"
-						+ "- Energy: " + std::to_string(simResult.energy) + "\n"
+				message += "- Closest: " + std::to_string(latestSimResult.closestPocket) + "\n"
+						+ "- Mean Pocket Dist: " + std::to_string(latestSimResult.meanPocketDist) + "\n"
+						+ "- Energy: " + std::to_string(latestSimResult.energy) + "\n"
 						+ "- Overlapping: "
 						+ std::to_string(drawMolecules.at(0)->Intersects(*drawMolecules.at(1))) + "\n";
 			}

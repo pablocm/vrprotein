@@ -73,7 +73,8 @@ private:
 	bool isSimulating;
 	bool isCalculatingForces;
 	Scalar forceAttenuation;	// 1.0 = Normal, 0.0 = Forces do not affect molecule.
-	Simulator::SimResult simResult;
+	Simulator::SimResult latestSimResult;
+	Simulator::SimResult bestSimResult;
 	// Experiment
 	std::unique_ptr<Misc::File> experimentFile;
 
