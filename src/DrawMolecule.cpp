@@ -31,7 +31,7 @@ DrawMolecule::DataItem::DataItem() :
 			hasVertexBufferObjectExtension(GLARBVertexBufferObject::isSupported()),
 			glDataVersion(0) {
 	if (hasVertexBufferObjectExtension) {
-		std::cout << "Video card supports GL_ARB_vertex_buffer_object." << std::endl;
+		//std::cout << "Video card supports GL_ARB_vertex_buffer_object." << std::endl;
 		/* Initialize the vertex buffer object extension: */
 		GLARBVertexBufferObject::initExtension();
 
@@ -40,7 +40,7 @@ DrawMolecule::DataItem::DataItem() :
 		glGenBuffersARB(1, faceIndexBufferObjectIDs);
 	}
 	else {
-		std::cout << "Video card does NOT support GL_ARB_vertex_buffer_object." << std::endl;
+		//std::cout << "Video card does NOT support GL_ARB_vertex_buffer_object." << std::endl;
 	}
 
 	// Create display list for storing molecule rendering
@@ -274,7 +274,7 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 		dataItem->glDataVersion = glDataVersion;
 
 		/* Compile and execute a new display list */
-		std::cout << "Compiling new display list" << std::endl;
+		//std::cout << "Compiling new display list" << std::endl;
 		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 		{
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, Color(0.9f, 0.9f, 0.9f, alpha));
@@ -322,7 +322,7 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 			glBindBufferARB(GL_ARRAY_BUFFER_ARB, dataItem->faceVertexBufferObjectIDs[0]);
 			/* Check if we need to upload data: */
 			if (dataItem->glDataVersion != glDataVersion) {
-				std::cout << "Updating VBO" << std::endl;
+				//std::cout << "Updating VBO" << std::endl;
 				dataItem->glDataVersion = glDataVersion;
 				/* Upload new vertex & index data: */
 				glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, indices.size() * sizeof(GLuint),
@@ -359,7 +359,7 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 			dataItem->glDataVersion = glDataVersion;
 
 			/* Compile and execute a new display list */
-			std::cout << "Compiling new display list" << std::endl;
+			//std::cout << "Compiling new display list" << std::endl;
 			glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 			{
 				glBegin(GL_TRIANGLES);

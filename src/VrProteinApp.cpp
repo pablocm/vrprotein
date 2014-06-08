@@ -222,7 +222,15 @@ void VrProteinApp::frame() {
 }
 
 void VrProteinApp::debug() {
-	std::cout << "Debug: doing nothing" << std::endl;
+	std::cout << "Debug: moving to best solution" << std::endl;
+	Vector lOffset = drawMolecules.at(0)->GetMolecule().GetOffset();
+	Vector pOffset = drawMolecules.at(1)->GetMolecule().GetOffset();
+	ONTransform pState = drawMolecules.at(1)->GetState();
+
+	//Vector bestPos = state.getTranslation() + lOffset + pOffset;
+	Vector bestPos = -lOffset + pOffset + pState.getTranslation();
+	drawMolecules.at(0)->SetState(ONTransform(bestPos, Rotation::identity));
+
 	/* Toggle DrawStyle:
 	std::cout << "Debug: toggle DrawStyle" << std::endl;
 	selectedMoleculeIdx = 1;

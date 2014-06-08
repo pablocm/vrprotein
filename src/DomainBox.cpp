@@ -65,12 +65,12 @@ void DomainBox::initContext(GLContextData& contextData) const {
 			glColor(originColor);
 			glBegin(GL_LINES);
 			{
-				glVertex(-10, 0, 0);
-				glVertex(10, 0, 0);
-				glVertex(0, -10, 0);
-				glVertex(0, 10, 0);
-				glVertex(0, 0, -10);
-				glVertex(0, 0, 10);
+				glVertex(-5, 0, 0);
+				glVertex(5, 0, 0);
+				glVertex(0, -5, 0);
+				glVertex(0, 5, 0);
+				glVertex(0, 0, -5);
+				glVertex(0, 0, 5);
 			}
 			glEnd();
 		}
