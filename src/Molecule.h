@@ -19,11 +19,11 @@ public:
 	std::string source_filename;	// archivo PDB
 
 	Molecule();
-	void AddAtom(std::unique_ptr<MolAtom> &atom);
-	const std::vector<std::unique_ptr<MolAtom>>& GetAtoms() const;
-	const std::unique_ptr<MolAtom>& FindBySerial(int serial) const;
-	void FixCenterOffset();	// Moves all atoms so that the centroid is at the origin
-	const Vector& GetOffset() const;	// Get offset (used to displace surf mesh)
+	void addAtom(std::unique_ptr<MolAtom> &atom);
+	const std::vector<std::unique_ptr<MolAtom>>& getAtoms() const;
+	const std::unique_ptr<MolAtom>& findBySerial(int serial) const;
+	void fixCenterOffset();	// Moves all atoms so that the centroid is at the origin
+	const Vector& getOffset() const;	// Get offset (used to displace surf mesh)
 private:
 	std::vector<std::unique_ptr<MolAtom>> atoms;
 	Vector offset;

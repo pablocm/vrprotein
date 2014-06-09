@@ -25,7 +25,7 @@ void MoleculeDragger::dragStartCallback(Vrui::DraggingTool::DragStartCallbackDat
 	if (cbData->rayBased) {
 		std::cout << "Checking ray intersect" << std::endl;
 		for (unsigned int i = 0; i < application->drawMolecules.size(); i++) {
-			if (application->drawMolecules[i]->Intersects(cbData->ray)) {
+			if (application->drawMolecules[i]->intersects(cbData->ray)) {
 				moleculeIdx = i;
 				break;
 			}
@@ -36,7 +36,7 @@ void MoleculeDragger::dragStartCallback(Vrui::DraggingTool::DragStartCallbackDat
 		std::cout << "Checking intersect at ";
 		std::cout << point[0] << ", " << point[1] << ", " << point[2] << std::endl;
 		for (unsigned int i = 0; i < application->drawMolecules.size(); i++) {
-			if (application->drawMolecules[i]->Intersects(point)) {
+			if (application->drawMolecules[i]->intersects(point)) {
 				moleculeIdx = i;
 				break;
 			}
@@ -45,7 +45,7 @@ void MoleculeDragger::dragStartCallback(Vrui::DraggingTool::DragStartCallbackDat
 
 	/* Try locking the atom: */
 	if (moleculeIdx >= 0) {
-		if (application->drawMolecules[moleculeIdx]->Lock()) {
+		if (application->drawMolecules[moleculeIdx]->lock()) {
 			std::cout << "Grabbed molecule." << std::endl;
 			dragging = true;
 
@@ -53,7 +53,7 @@ void MoleculeDragger::dragStartCallback(Vrui::DraggingTool::DragStartCallbackDat
 			dragTransform = ONTransform(cbData->startTransformation.getTranslation(),
 					cbData->startTransformation.getRotation());
 			dragTransform.doInvert();
-			dragTransform *= application->drawMolecules[moleculeIdx]->GetState();
+			dragTransform *= application->drawMolecules[moleculeIdx]->getState();
 		}
 		else
 			std::cout << "Molecule is locked by another dragger." << std::endl;
@@ -68,7 +68,7 @@ void MoleculeDragger::dragCallback(Vrui::DraggingTool::DragCallbackData* cbData)
 		ONTransform transform = ONTransform(cbData->currentTransformation.getTranslation(),
 				cbData->currentTransformation.getRotation());
 		transform *= dragTransform;
-		application->drawMolecules[moleculeIdx]->SetState(transform);
+		application->drawMolecules[moleculeIdx]->setState(transform);
 	}
 }
 
@@ -76,16 +76,16 @@ void MoleculeDragger::dragEndCallback(Vrui::DraggingTool::DragEndCallbackData* c
 	if (dragging) {
 		std::cout << "Released molecule." << std::endl;
 		/* Release the previously dragged atom: */
-		application->drawMolecules[moleculeIdx]->Unlock();
+		application->drawMolecules[moleculeIdx]->unlock();
 		moleculeIdx = -1;
 		dragging = false;
 	}
 }
 
-void MoleculeDragger::Reset() {
+void MoleculeDragger::reset() {
 	if (dragging) {
 		std::cout << "Dragger reset." << std::endl;
-		application->drawMolecules[moleculeIdx]->Unlock();
+		application->drawMolecules[moleculeIdx]->unlock();
 		moleculeIdx = -1;
 		dragging = false;
 	}

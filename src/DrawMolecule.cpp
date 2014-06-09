@@ -64,7 +64,7 @@ Methods of class DrawMolecule:
 
 DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	molecule = move(m);
-	molecule->FixCenterOffset();
+	molecule->fixCenterOffset();
 	style = DrawStyle::Points;
 	surfComputed = false;
 	surfUsesIndices = false;
@@ -80,10 +80,10 @@ DrawMolecule::DrawMolecule(unique_ptr<Molecule> m) {
 	glDataVersion = 0;
 }
 
-bool DrawMolecule::Intersects(const Ray& r) const {
-	auto transform = GetState();
+bool DrawMolecule::intersects(const Ray& r) const {
+	auto transform = getState();
 	Sphere sphere(Point::origin, 0);  // Test sphere
-	for (const auto& atom : molecule->GetAtoms()) {
+	for (const auto& atom : molecule->getAtoms()) {
 		auto pos = transform.transform(atom->position);
 		sphere.setCenter(pos);
 		sphere.setRadius(atom->radius * 1.5);
@@ -96,9 +96,9 @@ bool DrawMolecule::Intersects(const Ray& r) const {
 	return false;
 }
 
-bool DrawMolecule::Intersects(const Point& p) const {
-	auto transform = GetState();
-	for (const auto& atom : molecule->GetAtoms()) {
+bool DrawMolecule::intersects(const Point& p) const {
+	auto transform = getState();
+	for (const auto& atom : molecule->getAtoms()) {
 		auto pos = transform.transform(atom->position);
 
 		auto dist2 = Geometry::sqrDist(p, pos);
@@ -108,15 +108,15 @@ bool DrawMolecule::Intersects(const Point& p) const {
 	return false;
 }
 
-Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
+Scalar DrawMolecule::intersects(const DrawMolecule& other) const {
 	//Scalar intersectionAmount2 = 0;
 	Scalar intersectionAmount = 0;
-	auto transform = GetState();
-	auto otherTransform = other.GetState();
-	for (const auto& atom : molecule->GetAtoms()) {
+	auto transform = getState();
+	auto otherTransform = other.getState();
+	for (const auto& atom : molecule->getAtoms()) {
 		auto pos = transform.transform(atom->position);
 
-		for(const auto& otherAtom : other.molecule->GetAtoms()) {
+		for(const auto& otherAtom : other.molecule->getAtoms()) {
 			auto otherPosition = otherTransform.transform(otherAtom->position);
 			auto dist2 = Geometry::sqrDist(pos, otherPosition);
 			auto mindist2 = Math::sqr(atom->radius + otherAtom->radius);
@@ -131,28 +131,28 @@ Scalar DrawMolecule::Intersects(const DrawMolecule& other) const {
 	return intersectionAmount;
 }
 
-bool DrawMolecule::Lock() {
+bool DrawMolecule::lock() {
 	if (!locked)
 		return locked = true;
 	return false;
 }
 
-void DrawMolecule::Unlock() {
+void DrawMolecule::unlock() {
 	locked = false;
 }
 
-ONTransform DrawMolecule::GetState() const {
+ONTransform DrawMolecule::getState() const {
 	return ONTransform(position - Point::origin, orientation);
 }
 
-void DrawMolecule::SetState(const ONTransform& newState) {
+void DrawMolecule::setState(const ONTransform& newState) {
 	position = newState.getOrigin();
 	orientation = newState.getRotation();
 	velocity = Vector::zero;
 	angularVelocity = Vector::zero;
 }
 
-void DrawMolecule::Step(const Vector& netForce, const Vector& netTorque, Scalar timeStep) {
+void DrawMolecule::step(const Vector& netForce, const Vector& netTorque, Scalar timeStep) {
 	const Scalar mass = 1;
 	const Scalar inertia = 2;
 	Scalar t2 = timeStep * timeStep;
@@ -188,7 +188,7 @@ void DrawMolecule::Step(const Vector& netForce, const Vector& netTorque, Scalar 
 	angularVelocity *= 0.95;
 }
 
-void DrawMolecule::ResetForces() {
+void DrawMolecule::resetForces() {
 	//std::cout << "Reset forces" << std::endl;
 	velocity = Vector::zero;
 	angularVelocity = Vector::zero;
@@ -200,17 +200,17 @@ void DrawMolecule::initContext(GLContextData& contextData) const {
 	contextData.addDataItem(this, dataItem);
 }
 
-void DrawMolecule::Draw(GLContextData& contextData) const {
+void DrawMolecule::draw(GLContextData& contextData) const {
 	glPushMatrix();
 	/* Go to model coordinates: */
-	glMultMatrix(GetState());
+	glMultMatrix(getState());
 
 	switch (style) {
 	case DrawStyle::Points:
-		DrawPoints(contextData);
+		drawPoints(contextData);
 		break;
 	case DrawStyle::Surf:
-		DrawSurf(contextData);
+		drawSurf(contextData);
 		break;
 	case DrawStyle::None:
 		throw std::runtime_error("DrawStyle::None is not supported");
@@ -233,7 +233,7 @@ void DrawMolecule::Draw(GLContextData& contextData) const {
 
 void DrawMolecule::glRenderAction(GLContextData& contextData) const {
 	if (isVisible && !isTransparent)
-		Draw(contextData);
+		draw(contextData);
 }
 
 void DrawMolecule::glRenderActionTransparent(GLContextData& contextData) const {
@@ -248,10 +248,10 @@ void DrawMolecule::glRenderActionTransparent(GLContextData& contextData) const {
 
 		/* Render all back faces first: */
 		glCullFace(GL_FRONT);
-		Draw(contextData);
+		draw(contextData);
 		/* Render the front faces next: */
 		glCullFace(GL_BACK);
-		Draw(contextData);
+		draw(contextData);
 
 		glPopAttrib();
 		glPopMatrix();
@@ -261,7 +261,7 @@ void DrawMolecule::glRenderActionTransparent(GLContextData& contextData) const {
 /**
  * Dibujar molecula usando esferas.
  */
-void DrawMolecule::DrawPoints(GLContextData& contextData) const {
+void DrawMolecule::drawPoints(GLContextData& contextData) const {
 	/* Get the OpenGL-dependent application data from the GLContextData object: */
 	DataItem* dataItem = contextData.retrieveDataItem<DataItem>(this);
 
@@ -278,13 +278,13 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 		glNewList(dataItem->displayListId, GL_COMPILE_AND_EXECUTE);
 		{
 			glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, Color(0.9f, 0.9f, 0.9f, alpha));
-			for (const auto& a : molecule->GetAtoms()) {
+			for (const auto& a : molecule->getAtoms()) {
 				if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
-					auto color = AtomColor(a->short_name);
+					auto color = atomColor(a->short_name);
 					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, color);
 				}
 				else if (colorStyle == ColorStyle::Pockets) {
-					auto color = AtomColor(a->serial);
+					auto color = atomColor(a->serial);
 					glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, color);
 				}
 
@@ -301,7 +301,7 @@ void DrawMolecule::DrawPoints(GLContextData& contextData) const {
 /**
  * Dibujar usando superficie.
  */
-void DrawMolecule::DrawSurf(GLContextData& contextData) const {
+void DrawMolecule::drawSurf(GLContextData& contextData) const {
 	if (!surfComputed)
 		throw std::runtime_error("need to compute surf before draw");
 
@@ -368,13 +368,13 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 					if (colorStyle == ColorStyle::AnaglyphFriendly || colorStyle == ColorStyle::CPK) {
 						// The atom info is encoded inside the color components (i know...)
 						char name = static_cast<char>(v.color[0] * 256.0f);
-						auto atomColor = AtomColor(name);
-						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, atomColor);
+						auto color = atomColor(name);
+						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, color);
 					}
 					else if (colorStyle == ColorStyle::Pockets) {
 						int serial = static_cast<int>(v.color[1] * 16384.0f);
-						auto atomColor = AtomColor(serial);
-						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, atomColor);
+						auto color = atomColor(serial);
+						glMaterialAmbientAndDiffuse(GLMaterialEnums::FRONT_AND_BACK, color);
 					}
 					glVertex(v);
 				}
@@ -385,10 +385,10 @@ void DrawMolecule::DrawSurf(GLContextData& contextData) const {
 	}
 }
 
-void DrawMolecule::ComputeSurf() {
+void DrawMolecule::computeSurf() {
 	if (surfComputed)
 		return;
-	if (ComputeSurfIdx())
+	if (computeSurfIdx())
 		return;
 
 	// Ver si existe un archivo .tri ya generado por SURF
@@ -398,7 +398,7 @@ void DrawMolecule::ComputeSurf() {
 	if (!infile.fail()) {
 		cout << "success." << endl;
 
-		const Vector offset = molecule->GetOffset();
+		const Vector offset = molecule->getOffset();
 		string line;
 		while (getline(infile, line)) {
 			int atom_id = stoi(line);
@@ -414,7 +414,7 @@ void DrawMolecule::ComputeSurf() {
 				Vertex vertex;
 				//vertex->color = *AtomColor(molecule->GetAtoms()[atom_id]->short_name).release();
 				// The atom info is encoded inside the color components (i know...)
-				auto& atom = molecule->GetAtoms().at(atom_id);
+				auto& atom = molecule->getAtoms().at(atom_id);
 				char name = atom->short_name;
 				int serial = atom->serial;
 				vertex.color = Vertex::Color(name/256.0f, serial/16384.0f, 0, alpha);
@@ -437,14 +437,14 @@ void DrawMolecule::ComputeSurf() {
 	glDataVersion++;
 }
 
-bool DrawMolecule::ComputeSurfIdx() {
+bool DrawMolecule::computeSurfIdx() {
 	cout << "Trying to open " << molecule->source_filename << ".tri.idx ...";
 	ifstream infile;
 	infile.open(molecule->source_filename + ".tri.idx");
 	if (!infile.fail()) {
 		cout << "success." << endl;
 
-		const Vector offset = molecule->GetOffset();
+		const Vector offset = molecule->getOffset();
 		string line;
 
 		// Check file header
@@ -470,7 +470,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 			throw std::runtime_error("Error parsing file");
 
 		// Read indexed triangles
-		const auto& atoms = molecule->GetAtoms();
+		const auto& atoms = molecule->getAtoms();
 		while (getline(infile, line)) {
 			int atom_id = stoi(line);
 			// push 3 indices
@@ -492,7 +492,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 		glDataVersion++;
 
 		// Colorize vertices
-		UpdateVerticesColors();
+		updateVerticesColors();
 	}
 	else {
 		cout << "not found." << endl;
@@ -500,7 +500,7 @@ bool DrawMolecule::ComputeSurfIdx() {
 	return surfComputed;
 }
 
-void DrawMolecule::ComputePockets() {
+void DrawMolecule::computePockets() {
 	const int maxPockets = 5;	// max pockets per molecule
 	if (pocketsComputed)
 		return;
@@ -521,7 +521,7 @@ void DrawMolecule::ComputePockets() {
 				// add to dictionaries
 				atomToPocket[atomSerial] = pocketId;
 				pocketToAtoms[pocketId].push_back(atomSerial);
-				auto& atom = molecule->FindBySerial(atomSerial);
+				auto& atom = molecule->findBySerial(atomSerial);
 				pocketToSpheres[pocketId].push_back(Sphere(atom->position, atom->radius));
 			}
 		}
@@ -546,7 +546,7 @@ void DrawMolecule::ComputePockets() {
 	pocketsComputed = true;
 }
 
-DrawMolecule::Color DrawMolecule::AtomColor(char short_name) const {
+DrawMolecule::Color DrawMolecule::atomColor(char short_name) const {
 	if (colorStyle == ColorStyle::AnaglyphFriendly) {
 		// Anaglyph-friendly coloring
 		switch (short_name) {
@@ -583,15 +583,15 @@ DrawMolecule::Color DrawMolecule::AtomColor(char short_name) const {
 	return Color(0.9f, 0.9f, 0.9f, alpha); // white
 }
 
-DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
+DrawMolecule::Color DrawMolecule::atomColor(int serial) const {
 	if (colorStyle != ColorStyle::Pockets)
 		//throw std::runtime_error("Bad call to DrawMolecule::AtomColor");
-		return AtomColor(molecule->FindBySerial(serial)->short_name);
+		return atomColor(molecule->findBySerial(serial)->short_name);
 
 	auto it = atomToPocket.find(serial);
 	if (it != atomToPocket.end()) {
 		// randomize color
-		int randomId = (it->second + molecule->GetAtoms().size()) % 5 + 1;
+		int randomId = (it->second + molecule->getAtoms().size()) % 5 + 1;
 		switch(randomId) {
 		case 1:
 			return Color(0.3f, 0.3f, 1.0f, alpha);
@@ -612,11 +612,11 @@ DrawMolecule::Color DrawMolecule::AtomColor(int serial) const {
 	return Color(0.9f, 0.9f, 0.9f, alpha); // white
 }
 
-std::string DrawMolecule::GetNameOfPocket(int pocket) const {
+std::string DrawMolecule::getNameOfPocket(int pocket) const {
 	if (pocket == -1)
 		return "---";
 
-	int randomId = (pocket + molecule->GetAtoms().size()) % 5 + 1;
+	int randomId = (pocket + molecule->getAtoms().size()) % 5 + 1;
 	switch (randomId) {
 	case 1:
 		return "blue";
@@ -633,53 +633,53 @@ std::string DrawMolecule::GetNameOfPocket(int pocket) const {
 	}
 }
 
-const Molecule& DrawMolecule::GetMolecule() const {
+const Molecule& DrawMolecule::getMolecule() const {
 	return *molecule;
 }
 
-std::string DrawMolecule::GetName() const {
+std::string DrawMolecule::getName() const {
 	return molecule->source_filename;
 }
 
-ColorStyle DrawMolecule::GetColorStyle() const {
+ColorStyle DrawMolecule::getColorStyle() const {
 	return colorStyle;
 }
 
-void DrawMolecule::SetColorStyle(ColorStyle newColorStyle) {
+void DrawMolecule::setColorStyle(ColorStyle newColorStyle) {
 	if (colorStyle == newColorStyle)
 		return;
 
 	colorStyle = newColorStyle;
 	if (colorStyle == ColorStyle::Pockets) {
-		ComputePockets();
+		computePockets();
 	}
-	UpdateVerticesColors();
+	updateVerticesColors();
 	glDataVersion++;
 }
 
-DrawStyle DrawMolecule::GetDrawStyle() const {
+DrawStyle DrawMolecule::getDrawStyle() const {
 	return style;
 }
 
-void DrawMolecule::SetDrawStyle(DrawStyle newStyle) {
+void DrawMolecule::setDrawStyle(DrawStyle newStyle) {
 	if (style == newStyle)
 		return;
 
 	style = newStyle;
 	if (style == DrawStyle::Surf) {
-		ComputeSurf();
+		computeSurf();
 	}
 	glDataVersion++;
 }
 
-void DrawMolecule::UpdateVerticesColors() {
+void DrawMolecule::updateVerticesColors() {
 	if (surfComputed && surfUsesIndices) {
 		switch(colorStyle) {
 		case ColorStyle::AnaglyphFriendly:
 		case ColorStyle::CPK:
 		case ColorStyle::Pockets:
 			for (unsigned int i = 0; i < vertices.size(); i++) {
-				vertices[i].color = AtomColor(vertexToAtom.at(i));
+				vertices[i].color = atomColor(vertexToAtom.at(i));
 				vertices[i].color[3] = isTransparent ? 0.6f : 1.0f;
 			}
 			break;
@@ -698,11 +698,11 @@ void DrawMolecule::UpdateVerticesColors() {
 	}
 }
 
-bool DrawMolecule::GetTransparency() const {
+bool DrawMolecule::getTransparency() const {
 	return isTransparent;
 }
 
-void DrawMolecule::SetTransparency(bool newIsTransparent) {
+void DrawMolecule::setTransparency(bool newIsTransparent) {
 	if (isTransparent == newIsTransparent)
 		return;
 
@@ -711,23 +711,23 @@ void DrawMolecule::SetTransparency(bool newIsTransparent) {
 		alpha = 0.4f;
 	else
 		alpha = 1.0f;
-	UpdateVerticesColors();
+	updateVerticesColors();
 	glDataVersion++;
 }
 
-bool DrawMolecule::GetVisibility() const {
+bool DrawMolecule::getVisibility() const {
 	return isVisible;
 }
 
-void DrawMolecule::SetVisibility(bool newIsVisible) {
+void DrawMolecule::setVisibility(bool newIsVisible) {
 	isVisible = newIsVisible;
 }
 
-const std::unordered_map<int, Point>& DrawMolecule::GetPocketCentroids() const {
+const std::unordered_map<int, Point>& DrawMolecule::getPocketCentroids() const {
 	return pocketCentroids;
 }
 
-const std::vector<Sphere>& DrawMolecule::GetSpheresOfPocket(int pocket) const {
+const std::vector<Sphere>& DrawMolecule::getSpheresOfPocket(int pocket) const {
 	return pocketToSpheres.at(pocket);
 }
 

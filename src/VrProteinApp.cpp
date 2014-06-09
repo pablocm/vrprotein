@@ -71,8 +71,8 @@ VrProteinApp::VrProteinApp(int& argc, char**& argv) :
 	drawMolecules.push_back(CreateMolecule("alanin/alanin.pdb"));
 
 	/* Move them away */
-	drawMolecules.at(0)->SetState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
-	drawMolecules.at(1)->SetState(ONTransform::translateFromOriginTo(Point(10, 0, 0)));
+	drawMolecules.at(0)->setState(ONTransform::translateFromOriginTo(Point(-10, 0, 0)));
+	drawMolecules.at(1)->setState(ONTransform::translateFromOriginTo(Point(10, 0, 0)));
 
 	/* Set the navigation transformation to show the entire scene: */
 	centerDisplay();
@@ -183,17 +183,17 @@ void VrProteinApp::frame() {
 			if (simulator.compare(latestSimResult, bestSimResults.at(closestPocket))) {
 				// Save result and move transparent marker
 				bestSimResults.at(closestPocket) = latestSimResult;
-				bestDrawMolecules.at(closestPocket)->SetState(ligand->GetState());
+				bestDrawMolecules.at(closestPocket)->setState(ligand->getState());
 			}
 		}
 
 		// Apply force to molecule
 		if (isCalculatingForces) {
 			if (latestSimResult.energy != 0)
-				ligand->Step(latestSimResult.netForce * forceAttenuation,
+				ligand->step(latestSimResult.netForce * forceAttenuation,
 						latestSimResult.netTorque * forceAttenuation, timeStep);
 			else
-				ligand->ResetForces();
+				ligand->resetForces();
 		}
 
 		// Draw statistics (update only if dialog is visible)
@@ -207,7 +207,7 @@ void VrProteinApp::frame() {
 		// widgets
 		overlapWidget->setValue(latestSimResult.overlappingAmount);
 		distanceWidget->setTitle(
-				"Dist. " + protein->GetNameOfPocket(latestSimResult.closestPocket));
+				"Dist. " + protein->getNameOfPocket(latestSimResult.closestPocket));
 		distanceWidget->setValue(latestSimResult.meanPocketDist);
 	}
 	else {
@@ -223,13 +223,13 @@ void VrProteinApp::frame() {
 
 void VrProteinApp::debug() {
 	std::cout << "Debug: moving to best solution" << std::endl;
-	Vector lOffset = drawMolecules.at(0)->GetMolecule().GetOffset();
-	Vector pOffset = drawMolecules.at(1)->GetMolecule().GetOffset();
-	ONTransform pState = drawMolecules.at(1)->GetState();
+	Vector lOffset = drawMolecules.at(0)->getMolecule().getOffset();
+	Vector pOffset = drawMolecules.at(1)->getMolecule().getOffset();
+	ONTransform pState = drawMolecules.at(1)->getState();
 
 	//Vector bestPos = state.getTranslation() + lOffset + pOffset;
 	Vector bestPos = -lOffset + pOffset + pState.getTranslation();
-	drawMolecules.at(0)->SetState(ONTransform(bestPos, Rotation::identity));
+	drawMolecules.at(0)->setState(ONTransform(bestPos, Rotation::identity));
 
 	/* Toggle DrawStyle:
 	std::cout << "Debug: toggle DrawStyle" << std::endl;
@@ -287,22 +287,22 @@ void VrProteinApp::setupExperiment(int experimentId) {
 		throw std::runtime_error("Bad call to setupExperiment");
 	}
 	// Ligand
-	drawMolecules.at(0)->SetColorStyle(ColorStyle::CPK);
-	drawMolecules.at(0)->SetDrawStyle(DrawStyle::Surf);
-	drawMolecules.at(0)->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+	drawMolecules.at(0)->setColorStyle(ColorStyle::CPK);
+	drawMolecules.at(0)->setDrawStyle(DrawStyle::Surf);
+	drawMolecules.at(0)->setState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
 	// Protein
-	drawMolecules.at(1)->SetColorStyle(ColorStyle::Pockets);
-	drawMolecules.at(1)->SetDrawStyle(DrawStyle::Surf);
-	drawMolecules.at(1)->SetState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
-	drawMolecules.at(1)->Lock();
+	drawMolecules.at(1)->setColorStyle(ColorStyle::Pockets);
+	drawMolecules.at(1)->setDrawStyle(DrawStyle::Surf);
+	drawMolecules.at(1)->setState(ONTransform::translateFromOriginTo(Point(-20, 0, 0)));
+	drawMolecules.at(1)->lock();
 	// Transp
 	for(auto& it : bestDrawMolecules) {
-		it.second->SetColorStyle(ColorStyle::CPK);
-		it.second->SetDrawStyle(DrawStyle::Surf);
-		it.second->SetState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
-		it.second->SetTransparency(true);
-		it.second->SetVisibility(false);
-		it.second->Lock();
+		it.second->setColorStyle(ColorStyle::CPK);
+		it.second->setDrawStyle(DrawStyle::Surf);
+		it.second->setState(ONTransform::translateFromOriginTo(Point(20, 0, 0)));
+		it.second->setTransparency(true);
+		it.second->setVisibility(false);
+		it.second->lock();
 	}
 
 	//Reset SimResults
@@ -318,35 +318,35 @@ void VrProteinApp::setupExperiment(int experimentId) {
 }
 
 void VrProteinApp::moveToPocket(int pocketId) {
-	auto pocketStr = drawMolecules.at(1)->GetNameOfPocket(pocketId);
+	auto pocketStr = drawMolecules.at(1)->getNameOfPocket(pocketId);
 	std::cout << "Moving ligand to best solution at pocket " << pocketId << pocketStr << std::endl;
 	// Move to pocket
-	drawMolecules.at(0)->SetState(bestDrawMolecules.at(pocketId)->GetState());
+	drawMolecules.at(0)->setState(bestDrawMolecules.at(pocketId)->getState());
 	// Turn off other solutions transparencies
 	for (auto& it : bestDrawMolecules)
-		it.second->SetVisibility(false);
-	bestDrawMolecules.at(pocketId)->SetVisibility(true);
+		it.second->setVisibility(false);
+	bestDrawMolecules.at(pocketId)->setVisibility(true);
 }
 
 void VrProteinApp::toggleClosestVisibility() {
 	const int closestId = latestSimResult.closestPocket;
 	if (closestId != -1) {
-		bool originalVisib = bestDrawMolecules.at(closestId)->GetVisibility();
-		auto pocketStr = drawMolecules.at(1)->GetNameOfPocket(closestId);
+		bool originalVisib = bestDrawMolecules.at(closestId)->getVisibility();
+		auto pocketStr = drawMolecules.at(1)->getNameOfPocket(closestId);
 		for (auto& it : bestDrawMolecules)
-				it.second->SetVisibility(false);
+				it.second->setVisibility(false);
 		std::cout << "Toggle pocket " << closestId << pocketStr << " visib. to " << !originalVisib
 				<< std::endl;
-		bestDrawMolecules.at(closestId)->SetVisibility(!originalVisib);
+		bestDrawMolecules.at(closestId)->setVisibility(!originalVisib);
 	}
 	else
 		std::cout << "Warning: No pockets nearby to toggle visibility." << std::endl;
 }
 
 void VrProteinApp::toggleAllVisibility() {
-	bool originalVisib = bestDrawMolecules.at(1)->GetVisibility();
+	bool originalVisib = bestDrawMolecules.at(1)->getVisibility();
 	for (auto& it : bestDrawMolecules)
-		it.second->SetVisibility(!originalVisib);
+		it.second->setVisibility(!originalVisib);
 	std::cout << "Toggle ALL visibilities to " << !originalVisib << std::endl;
 }
 
@@ -366,18 +366,18 @@ void VrProteinApp::saveSolution() {
 		/* Write to file if its opened: */
 		if (experimentFile != nullptr) {
 			auto message = TimeToString("** Solution saved at %H:%M:%S") + "\n";
-			message += "Ligand: " + drawMolecules.at(0)->GetMolecule().source_filename + "\n"
-					+ ONTransformToString(drawMolecules.at(0)->GetState());
-			message += "Protein: " + drawMolecules.at(1)->GetMolecule().source_filename + "\n"
-					+ ONTransformToString(drawMolecules.at(1)->GetState());
+			message += "Ligand: " + drawMolecules.at(0)->getMolecule().source_filename + "\n"
+					+ ONTransformToString(drawMolecules.at(0)->getState());
+			message += "Protein: " + drawMolecules.at(1)->getMolecule().source_filename + "\n"
+					+ ONTransformToString(drawMolecules.at(1)->getState());
 			if (isSimulating) {
 				message += "Pocket:\n";
 				message += "- Closest: " + std::to_string(latestSimResult.closestPocket)
-						+ drawMolecules.at(1)->GetNameOfPocket(latestSimResult.closestPocket) + "\n"
+						+ drawMolecules.at(1)->getNameOfPocket(latestSimResult.closestPocket) + "\n"
 						+ "- Mean Pocket Dist: " + std::to_string(latestSimResult.meanPocketDist) + "\n"
 						+ "- Energy: " + std::to_string(latestSimResult.energy) + "\n"
 						+ "- Overlapping: "
-						+ std::to_string(drawMolecules.at(0)->Intersects(*drawMolecules.at(1))) + "\n";
+						+ std::to_string(drawMolecules.at(0)->intersects(*drawMolecules.at(1))) + "\n";
 			}
 			else
 				std::cout << "WARNING: Simulation is OFF, pocket data not saved!" << std::endl;
@@ -588,7 +588,7 @@ std::vector<std::string> VrProteinApp::GetDropdownItemStrings() const {
 	}
 
 	for (unsigned int i = 0; i < drawMolecules.size(); i++) {
-		items.push_back(std::to_string(i) + ": " + drawMolecules.at(i)->GetName());
+		items.push_back(std::to_string(i) + ": " + drawMolecules.at(i)->getName());
 	}
 	return items;
 }
@@ -616,7 +616,7 @@ void VrProteinApp::toggleForces(bool calculateForces, bool refreshUI /* = true *
 	if (calculateForces && !isSimulating)
 		toggleSimulation(true);
 	if (!calculateForces)
-		drawMolecules.at(0)->ResetForces();
+		drawMolecules.at(0)->resetForces();
 	if (refreshUI) {
 		calculateForcesBtn->setToggle(calculateForces);
 	}
@@ -635,7 +635,7 @@ void VrProteinApp::setForceAttenuation(Scalar factor) {
 void VrProteinApp::setColorStyle(ColorStyle newStyle, bool refreshUI /* = true */) {
 	std::cout << "Changing color style to " << static_cast<int>(newStyle) << std::endl;
 	selectedColorStyle = newStyle;
-	drawMolecules.at(selectedMoleculeIdx)->SetColorStyle(selectedColorStyle);
+	drawMolecules.at(selectedMoleculeIdx)->setColorStyle(selectedColorStyle);
 	if (refreshUI) {
 		colorStylePicker->setSelectedToggle(static_cast<int>(newStyle));
 	}
@@ -644,7 +644,7 @@ void VrProteinApp::setColorStyle(ColorStyle newStyle, bool refreshUI /* = true *
 void VrProteinApp::setDrawStyle(DrawStyle newStyle, bool refreshUI /* = true */) {
 	std::cout << "Changing draw style to " << static_cast<int>(newStyle) << std::endl;
 	selectedStyle = newStyle;
-	drawMolecules.at(selectedMoleculeIdx)->SetDrawStyle(selectedStyle);
+	drawMolecules.at(selectedMoleculeIdx)->setDrawStyle(selectedStyle);
 	if (refreshUI) {
 		stylePicker->setSelectedToggle(static_cast<int>(newStyle));
 	}
@@ -663,11 +663,11 @@ void VrProteinApp::refreshSettingsDialog(bool rebuildMoleculeSelector /* = true 
 	auto ml = dynamic_cast<DropdownBox*>(settingsDialog->findDescendant("Settings/MoleculeLoader"));
 	ml->setSelectedItem(0);
 	// stylePicker
-	selectedStyle = drawMolecules.at(selectedMoleculeIdx)->GetDrawStyle();
+	selectedStyle = drawMolecules.at(selectedMoleculeIdx)->getDrawStyle();
 	auto sp = dynamic_cast<RadioBox*>(settingsDialog->findDescendant("Settings/StylePicker"));
 	sp->setSelectedToggle(static_cast<int>(selectedStyle) - 1);
 	// colorStylePicker
-	selectedColorStyle = drawMolecules.at(selectedMoleculeIdx)->GetColorStyle();
+	selectedColorStyle = drawMolecules.at(selectedMoleculeIdx)->getColorStyle();
 	colorStylePicker->setSelectedToggle(static_cast<int>(selectedColorStyle));
 }
 
@@ -688,7 +688,7 @@ void VrProteinApp::moleculeLoaderChangedCallback(DropdownBox::ValueChangedCallba
 	drawMolecules.at(selectedMoleculeIdx) = CreateMolecule(name);
 	// reset all draggers, just in case
 	for (auto& d : moleculeDraggers)
-		d->Reset();
+		d->reset();
 	refreshSettingsDialog();
 }
 
@@ -720,11 +720,11 @@ void VrProteinApp::toolDestructionCallback(Vrui::ToolManager::ToolDestructionCal
 
 /* Load a molecule from file */
 unique_ptr<DrawMolecule> VrProteinApp::CreateMolecule(const std::string& fileName) const {
-	unique_ptr<Molecule> m = PDBImporter::ParsePDB("./datasets/" + fileName);
+	unique_ptr<Molecule> m = PDBImporter::parsePDB("./datasets/" + fileName);
 	auto drawMolecule = unique_ptr<DrawMolecule>(new DrawMolecule(move(m)));
 
-	drawMolecule->SetDrawStyle(selectedStyle);
-	drawMolecule->SetColorStyle(selectedColorStyle);
+	drawMolecule->setDrawStyle(selectedStyle);
+	drawMolecule->setColorStyle(selectedColorStyle);
 
 	return drawMolecule;
 }
@@ -732,7 +732,7 @@ unique_ptr<DrawMolecule> VrProteinApp::CreateMolecule(const std::string& fileNam
 /* Find index of molecule by its name. Throws on failure. */
 int VrProteinApp::IndexOfMolecule(const std::string& moleculeName) const {
 	for (unsigned int i = 0; i < drawMolecules.size(); i++) {
-		if (drawMolecules.at(i)->GetName() == moleculeName) {
+		if (drawMolecules.at(i)->getName() == moleculeName) {
 			return i;
 		}
 	}

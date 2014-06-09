@@ -30,7 +30,7 @@ public:
 	virtual void dragStartCallback(Vrui::DraggingTool::DragStartCallbackData* cbData);
 	virtual void dragCallback(Vrui::DraggingTool::DragCallbackData* cbData);
 	virtual void dragEndCallback(Vrui::DraggingTool::DragEndCallbackData* cbData);
-	void Reset();	// halt dragging right away
+	void reset();	// halt dragging right away
 };
 
 }

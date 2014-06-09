@@ -17,17 +17,17 @@ Simulator::Simulator() {
 Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolecule& receptor,
 		bool calcForces) const {
 	auto result = SimResult();
-	ONTransform ligTransform = ligand.GetState();
-	ONTransform recTransform = receptor.GetState();
+	ONTransform ligTransform = ligand.getState();
+	ONTransform recTransform = receptor.getState();
 	Point ligPos = ligTransform.getOrigin();
 
 	// Calculate overlapping
-	result.overlappingAmount = ligand.Intersects(receptor);
+	result.overlappingAmount = ligand.intersects(receptor);
 
 	// Find closest pocket to ligand (if receptor has any)
 	result.closestPocket = -1;
 	Scalar closestPocketDist2 = 999; // max valid distance^2
-	for (const auto& it : receptor.GetPocketCentroids()) {
+	for (const auto& it : receptor.getPocketCentroids()) {
 		auto d2 = (ligPos - recTransform.transform(it.second)).sqr();
 		if (d2 < closestPocketDist2) {
 			closestPocketDist2 = d2;
@@ -36,8 +36,8 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 	}
 	// Calculate mean pocket distance
 	if (result.closestPocket != -1) {
-		auto pocketSpheres = receptor.GetSpheresOfPocket(result.closestPocket);
-		for (const auto& ligAtom : ligand.GetMolecule().GetAtoms()) {
+		auto pocketSpheres = receptor.getSpheresOfPocket(result.closestPocket);
+		for (const auto& ligAtom : ligand.getMolecule().getAtoms()) {
 			// find closest sphere
 			Scalar minDist2 = 999;
 			for (const auto& sphere : pocketSpheres) {
@@ -53,10 +53,10 @@ Simulator::SimResult Simulator::step(const DrawMolecule& ligand, const DrawMolec
 		result.meanPocketDist = 999;
 
 
-	for(const auto& ligAtom : ligand.GetMolecule().GetAtoms()) {
+	for(const auto& ligAtom : ligand.getMolecule().getAtoms()) {
 		Point ligAtomPos = ligTransform.transform(ligAtom->position);
 
-		for(const auto& recAtom : receptor.GetMolecule().GetAtoms()) {
+		for(const auto& recAtom : receptor.getMolecule().getAtoms()) {
 			Point recAtomPos = recTransform.transform(recAtom->position);
 			// Leonard-Jones potential:
 			// V(r) = epsilon * ( (rm/r)^12 - 2*(rm/r)^6 )

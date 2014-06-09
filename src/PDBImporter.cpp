@@ -20,7 +20,7 @@ namespace PDBImporter {
 /**
  * Toma un archivo PDB y retorna la molecula.
  */
-unique_ptr<Molecule> ParsePDB(const string &filename) {
+unique_ptr<Molecule> parsePDB(const string &filename) {
 	cout << "Opening " << filename << endl;
 	ifstream infile;
 	infile.open(filename);
@@ -33,13 +33,13 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
 	string line;
 	while (getline(infile, line)) {
 		if (line.substr(0, 5) == "ATOM ") {
-			auto atom = ParsePDBAtom(line);
-			molecule->AddAtom(atom);
+			auto atom = parsePDBAtom(line);
+			molecule->addAtom(atom);
 		}
 	}
 	infile.close();
 
-	cout << "Loaded " << molecule->GetAtoms().size() << " atoms." << endl;
+	cout << "Loaded " << molecule->getAtoms().size() << " atoms." << endl;
 	return molecule;
 }
 
@@ -63,7 +63,7 @@ unique_ptr<Molecule> ParsePDB(const string &filename) {
  77 - 78        LString(2)    element      Element symbol, right-justified.
  79 - 80        LString(2)    charge       Charge  on the atom.
  */
-unique_ptr<MolAtom> ParsePDBAtom(const string &line) {
+unique_ptr<MolAtom> parsePDBAtom(const string &line) {
 	auto atom = unique_ptr<MolAtom>(new MolAtom);
 
 	atom->serial = stoi(line.substr(6, 5));

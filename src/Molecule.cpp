@@ -18,17 +18,17 @@ Molecule::Molecule() :
 	offset(Vector::zero) {
 }
 
-void Molecule::AddAtom(unique_ptr<MolAtom> &atom) {
+void Molecule::addAtom(unique_ptr<MolAtom> &atom) {
 	atoms.push_back(move(atom));
 }
 
-const vector<unique_ptr<MolAtom>>& Molecule::GetAtoms() const {
+const vector<unique_ptr<MolAtom>>& Molecule::getAtoms() const {
 	// http://stackoverflow.com/questions/1563124/c-vector-class-as-a-member-in-other-class
 	// http://stackoverflow.com/questions/3777525/returning-a-unique-ptr-from-a-class-method-c0x
 	return atoms;
 }
 
-const unique_ptr<MolAtom>& Molecule::FindBySerial(int serial) const {
+const unique_ptr<MolAtom>& Molecule::findBySerial(int serial) const {
 	// Assumes atoms were inserted in serial order
 	auto it = std::lower_bound(atoms.begin(), atoms.end(), serial,
 			[](const unique_ptr<MolAtom>& a, const int s) {
@@ -43,7 +43,7 @@ const unique_ptr<MolAtom>& Molecule::FindBySerial(int serial) const {
 	return result;
 }
 
-void Molecule::FixCenterOffset() {
+void Molecule::fixCenterOffset() {
 	// Calculate center (and offset)
 	Vector center = Vector::zero;
 	Scalar totalMass = 0;
@@ -60,7 +60,7 @@ void Molecule::FixCenterOffset() {
 	}
 }
 
-const Vector& Molecule::GetOffset() const {
+const Vector& Molecule::getOffset() const {
 	return offset;
 }
 

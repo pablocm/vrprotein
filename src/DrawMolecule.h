@@ -56,34 +56,34 @@ public:
 	DrawMolecule(std::unique_ptr<Molecule> m);
 	DrawMolecule(const DrawMolecule&) = delete;				// delete copy ctor
 	DrawMolecule& operator=(DrawMolecule const&) = delete; 	// delete assignment
-	bool Intersects(const Ray& r) const;
-	bool Intersects(const Point& p) const;
-	Scalar Intersects(const DrawMolecule& other) const;
-	bool Lock();
-	void Unlock();
-	ONTransform GetState() const;	// Returns position and orientation of molecule
-	void SetState(const ONTransform& newState); // Sets state of molecule. Atom must be locked by caller.
-	void Step(const Vector& netForce, const Vector& netTorque, Scalar timeStep);
-	void ResetForces();
+	bool intersects(const Ray& r) const;
+	bool intersects(const Point& p) const;
+	Scalar intersects(const DrawMolecule& other) const;
+	bool lock();
+	void unlock();
+	ONTransform getState() const;	// Returns position and orientation of molecule
+	void setState(const ONTransform& newState); // Sets state of molecule. Atom must be locked by caller.
+	void step(const Vector& netForce, const Vector& netTorque, Scalar timeStep);
+	void resetForces();
 
 	virtual void initContext(GLContextData& contextData) const;
 	virtual void glRenderAction(GLContextData& contextData) const;
 	virtual void glRenderActionTransparent(GLContextData& contextData) const;
-	void ComputeSurf();
-	void ComputePockets();
-	const Molecule& GetMolecule() const;
-	std::string GetName() const;
-	DrawStyle GetDrawStyle() const;
-	void SetDrawStyle(DrawStyle style);
-	ColorStyle GetColorStyle() const;
-	void SetColorStyle(ColorStyle useColor);
-	const std::unordered_map<int, Point>& GetPocketCentroids() const;
-	const std::vector<Sphere>& GetSpheresOfPocket(int pocket) const;
-	std::string GetNameOfPocket(int pocket) const;
-	bool GetTransparency() const;
-	void SetTransparency(bool isTransparent);
-	bool GetVisibility() const;
-	void SetVisibility(bool isVisible);
+	void computeSurf();
+	void computePockets();
+	const Molecule& getMolecule() const;
+	std::string getName() const;
+	DrawStyle getDrawStyle() const;
+	void setDrawStyle(DrawStyle style);
+	ColorStyle getColorStyle() const;
+	void setColorStyle(ColorStyle useColor);
+	const std::unordered_map<int, Point>& getPocketCentroids() const;
+	const std::vector<Sphere>& getSpheresOfPocket(int pocket) const;
+	std::string getNameOfPocket(int pocket) const;
+	bool getTransparency() const;
+	void setTransparency(bool isTransparent);
+	bool getVisibility() const;
+	void setVisibility(bool isVisible);
 private:
 	std::unique_ptr<Molecule> molecule;
 	std::vector<Vertex> vertices;
@@ -108,13 +108,13 @@ private:
 	bool locked;	// currently locked by a dragger
 	unsigned int glDataVersion; // Version number of the graphics data stored in the GLContexts.
 
-	bool ComputeSurfIdx();
-	void Draw(GLContextData& contextData) const;
-	void DrawPoints(GLContextData& contextData) const;
-	void DrawSurf(GLContextData& contextData) const;
-	DrawMolecule::Color AtomColor(char short_name) const;
-	DrawMolecule::Color AtomColor(int serial) const;
-	void UpdateVerticesColors();	// Update vertices colors (when using indices)
+	bool computeSurfIdx();
+	void draw(GLContextData& contextData) const;
+	void drawPoints(GLContextData& contextData) const;
+	void drawSurf(GLContextData& contextData) const;
+	DrawMolecule::Color atomColor(char short_name) const;
+	DrawMolecule::Color atomColor(int serial) const;
+	void updateVerticesColors();	// Update vertices colors (when using indices)
 };
 
 }
