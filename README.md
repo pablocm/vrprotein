@@ -26,7 +26,7 @@ $ make
 Antes de abrir la aplicación es necesario bajar los archivos de moléculas 
 PDB (no incluidos en el repositorio git) y copiarlos a la carpeta 
 ```./datasets```. Estos se pueden descargar aquí: 
-https://www.dropbox.com/s/ijh3ob4fc49i05u/datasets.zip
+https://dl.dropboxusercontent.com/u/369917/vrprotein/datasets.zip
 
 La aplicación se ejecuta con ```bin/vrprotein```. Por default la aplicación 
 usará solo mouse y teclado. Para usar dispositivos extras (Rift, Hydra, 
